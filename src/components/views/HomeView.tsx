@@ -4,6 +4,7 @@ import { Photo } from "@/components/Photo";
 import { ProductCard } from "@/components/ProductCard";
 import { brands, byCategory, bySlug, categories, formatKc, products } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
+import { imageFor } from "@/lib/images";
 
 export function HomeView() {
   const { t } = useLang();
@@ -18,7 +19,7 @@ export function HomeView() {
     <>
       {/* Hero: full-bleed campaign photo with text overlay */}
       <section className="relative text-paper">
-        <Photo label={hero.name} tone="dark" ratio="aspect-[4/5] sm:aspect-[16/9] lg:aspect-[21/9]" hint={`${hero.brand} ${hero.name}`} />
+        <Photo label={hero.name} src={imageFor(hero.slug)} fit="cover" tone="dark" ratio="aspect-[4/5] sm:aspect-[16/9] lg:aspect-[21/9]" hint={`${hero.brand} ${hero.name}`} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <div className="container-x absolute inset-x-0 bottom-0 pb-10 sm:pb-14 lg:pb-20">
           <div className="max-w-xl">

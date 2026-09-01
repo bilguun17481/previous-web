@@ -28,4 +28,15 @@ Language toggle (CZ / EN) sits in the header; all UI copy and product descriptio
 
 `src/data/catalog.ts` holds 56 products across CFMOTO, Linhai, TGB, Kentoya and TUMOTO. The live motodvorak.cz site could not be fetched from the build environment, so the range was **reconstructed** from search-index snippets of motodvorak.cz product pages plus each importer's current Czech line-up and price lists. Prices are in Kč incl. VAT and should be checked against the shop's own list before going live. Editing that one file updates every page.
 
-Product photography is stood in for by `src/components/Photo.tsx`, a studio-backdrop placeholder sized like the final image. Replace it with an `<img>` (or `next/image`) at each call site once photos are available; the surrounding layout does not change.
+## Product images
+
+`src/components/Photo.tsx` renders the real photograph when one exists and a studio-backdrop placeholder otherwise. Images are looked up by catalog slug in `src/data/images.json`, which maps to files in `public/products/`.
+
+To pull the pictures from motodvorak.cz (needs network access to that site, which the hosted build environment does not have):
+
+```bash
+npm run fetch-images -- --dry-run   # show which page each product matched
+npm run fetch-images                # download into public/products and write images.json
+```
+
+The script crawls the site, matches page titles to catalog names, and takes each page's main image. Products it cannot match are listed in the report; add them to `OVERRIDES` in `scripts/fetch-images.mjs` as slug → page path and rerun. Commit `public/products/` and `src/data/images.json` together.

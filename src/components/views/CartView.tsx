@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Photo } from "@/components/Photo";
 import { formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
+import { imageFor } from "@/lib/images";
 import { cartSubtotal, sampleCart } from "@/lib/sampleCart";
 
 export function CartView() {
@@ -18,7 +19,7 @@ export function CartView() {
         <ul className="border-t hairline">
           {sampleCart.map(({ p, qty }) => (
             <li key={p.slug} className="grid grid-cols-[88px_1fr_auto] items-center gap-5 border-b hairline py-5 sm:grid-cols-[120px_1fr_auto_auto]">
-              <Link href={`/produkt/${p.slug}/`}><Photo label={p.name} ratio="aspect-square" hint="" /></Link>
+              <Link href={`/produkt/${p.slug}/`}><Photo label={p.name} src={imageFor(p.slug)} ratio="aspect-square" hint="" /></Link>
               <div>
                 <div className="eyebrow">{p.brand}</div>
                 <Link href={`/produkt/${p.slug}/`} className="mt-1 block text-[16px] font-semibold leading-tight hover:underline underline-offset-4">{p.name}</Link>

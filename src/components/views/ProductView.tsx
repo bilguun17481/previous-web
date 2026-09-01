@@ -5,6 +5,7 @@ import { Photo } from "@/components/Photo";
 import { ProductCard } from "@/components/ProductCard";
 import { byCategory, bySlug, categories, formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
+import { imageFor } from "@/lib/images";
 
 export function ProductView({ slug }: { slug: string }) {
   const { t } = useLang();
@@ -25,7 +26,7 @@ export function ProductView({ slug }: { slug: string }) {
       <section className="container-x grid gap-10 lg:grid-cols-[7fr_5fr]">
         <div>
           <div className="relative">
-            <Photo label={p.name} ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name} · ${shots[shot]}`} />
+            <Photo label={p.name} src={imageFor(p.slug)} ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name} · ${shots[shot]}`} />
             {p.tags && (
               <div className="absolute left-4 top-4 flex gap-1.5">
                 {p.tags.map((tag) => (
@@ -37,7 +38,7 @@ export function ProductView({ slug }: { slug: string }) {
           <div className="mt-3 grid grid-cols-4 gap-3">
             {shots.map((s, i) => (
               <button key={s} onClick={() => setShot(i)} aria-pressed={shot === i} className={`border ${shot === i ? "border-ink" : "border-transparent hover:border-hair"}`}>
-                <Photo label={`${p.name} ${s}`} ratio="aspect-[4/3]" hint={s} />
+                <Photo label={`${p.name} ${s}`} src={i === 0 ? imageFor(p.slug) : undefined} ratio="aspect-[4/3]" hint={s} />
               </button>
             ))}
           </div>

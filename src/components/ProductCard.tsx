@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Photo } from "./Photo";
 import { formatKc, type Product } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
+import { imageFor } from "@/lib/images";
 
 export function ProductCard({ p }: { p: Product }) {
   const { t } = useLang();
   return (
     <div className="group flex flex-col bg-paper">
       <Link href={`/produkt/${p.slug}/`} className="relative block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink">
-        <Photo label={p.name} ratio="aspect-square" className="transition-opacity group-hover:opacity-90" />
+        <Photo label={p.name} src={imageFor(p.slug)} ratio="aspect-square" className="transition-opacity group-hover:opacity-90" />
         {p.tags && (
           <div className="absolute left-3 top-3 flex gap-1.5">
             {p.tags.map((tag) => (

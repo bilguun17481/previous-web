@@ -1,23 +1,35 @@
 "use client";
-/* Photo-style placeholder: a studio backdrop with a floor shadow, sized and
-   captioned like the product photograph that will replace it. */
+/* Product image frame. Renders the real photograph when `src` is given;
+   otherwise a studio-backdrop placeholder sized like the final image. */
 export function Photo({
   label,
+  src,
   tone = "light",
   className = "",
   ratio = "aspect-[4/3]",
   hint,
+  fit = "contain",
 }: {
   label: string;
+  src?: string;
   tone?: "light" | "dark";
   className?: string;
   ratio?: string;
   hint?: string;
+  fit?: "contain" | "cover";
 }) {
   const bg =
     tone === "dark"
       ? "radial-gradient(120% 80% at 50% 30%, #3a3a3a 0%, #1a1a1a 55%, #0b0b0b 100%)"
       : "radial-gradient(120% 90% at 50% 28%, #ffffff 0%, #f1f1ef 55%, #e2e2de 100%)";
+  if (src) {
+    return (
+      <div className={`relative overflow-hidden ${ratio} ${className}`} style={{ background: tone === "dark" ? "#111" : "#f4f4f2" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={label} loading="lazy" className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
+      </div>
+    );
+  }
   return (
     <div className={`relative overflow-hidden ${ratio} ${className}`} style={{ background: bg }} aria-label={label} role="img">
       <div
