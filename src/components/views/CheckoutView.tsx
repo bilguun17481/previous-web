@@ -16,7 +16,7 @@ export function CheckoutView() {
   );
   return (
     <section className="container-x py-12">
-      <h1 className="display text-[44px] font-medium leading-none">{t(k.title)}</h1>
+      <h1 className="text-[40px] font-bold leading-none tracking-[-0.02em]">{t(k.title)}</h1>
       <form className="mt-10 grid gap-12 lg:grid-cols-[7fr_4fr]" onSubmit={(e) => e.preventDefault()}>
         <div className="space-y-12">
           <fieldset>
@@ -55,13 +55,13 @@ export function CheckoutView() {
           <ul className="mt-4 space-y-3 border-b hairline pb-4 text-[13px]">
             {sampleCart.map(({ p, qty }) => (
               <li key={p.slug} className="flex justify-between gap-4">
-                <span>{p.name}<span className="ml-2 font-mono text-[11px] text-mute">× {qty}</span></span>
-                <span className="font-mono">{formatKc(p.price * qty)}</span>
+                <span>{p.name}<span className="ml-2 text-[11px] text-mute">× {qty}</span></span>
+                <span className="font-semibold">{formatKc(p.price * qty)}</span>
               </li>
             ))}
           </ul>
-          <div className="mt-4 flex justify-between font-mono text-[17px]"><span>{t(dict.cart.total)}</span><span>{formatKc(cartSubtotal)}</span></div>
-          <div className="font-mono text-[11px] text-mute">{t(dict.cart.vatIncl)}</div>
+          <div className="mt-4 flex justify-between text-[18px] font-semibold"><span>{t(dict.cart.total)}</span><span>{formatKc(cartSubtotal)}</span></div>
+          <div className="text-[11px] text-mute">{t(dict.cart.vatIncl)}</div>
           <button className="btn-ink mt-6 w-full">{t(k.place)}</button>
           <p className="mt-4 text-[11px] leading-relaxed text-mute">{t(k.terms)}</p>
         </aside>

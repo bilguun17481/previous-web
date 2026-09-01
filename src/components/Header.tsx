@@ -18,53 +18,55 @@ export function Header() {
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 bg-paper">
-      <div className="bg-tile text-center font-mono text-[11px] tracking-wide text-mute">
-        <div className="container-x truncate py-1.5">{t(dict.topbar)}</div>
+      <div className="bg-ink text-paper">
+        <div className="container-x flex h-8 items-center justify-between text-[11px] tracking-wide">
+          <span className="truncate">{t(dict.topbar)}</span>
+          <div className="hidden shrink-0 gap-1 sm:flex" role="group" aria-label="Language">
+            {(["cs", "en"] as const).map((l) => (
+              <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
+                className={`px-1.5 font-semibold uppercase tracking-[0.12em] ${lang === l ? "text-paper" : "text-neutral-500 hover:text-paper"}`}>
+                {l === "cs" ? "CZ" : "EN"}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="border-b hairline">
-        <div className="container-x flex h-16 items-center justify-between gap-6">
-          <Link href="/" className="display flex items-baseline gap-2 text-[19px] font-semibold leading-none">
-            MOTO DVOŘÁK
-            <span className="hidden font-mono text-[10px] font-normal tracking-[0.14em] text-mute sm:inline">GOLČŮV JENÍKOV</span>
+        <div className="container-x flex h-[72px] items-center justify-between gap-6">
+          <Link href="/" className="text-[22px] font-extrabold uppercase leading-none tracking-[-0.03em]">
+            Moto Dvořák
           </Link>
-          <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
+          <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
             {links.map((l) => (
-              <Link key={l.key} href={l.href} className="text-[13px] font-medium tracking-tight hover:text-mute">
+              <Link key={l.key} href={l.href} className="text-[12px] font-semibold uppercase tracking-[0.14em] hover:text-mute">
                 {t(dict.nav[l.key])}
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-4">
-            <div className="flex font-mono text-[11px] tracking-[0.12em]" role="group" aria-label="Language">
+          <div className="flex items-center gap-5">
+            <div className="flex sm:hidden" role="group" aria-label="Language">
               {(["cs", "en"] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  aria-pressed={lang === l}
-                  className={`px-1.5 py-1 uppercase ${lang === l ? "text-ink underline underline-offset-4" : "text-mute hover:text-ink"}`}
-                >
-                  {l === "cs" ? "CZ" : "EN"}
-                </button>
+                <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l} className={`px-1 text-[11px] font-semibold uppercase ${lang === l ? "" : "text-mute"}`}>{l === "cs" ? "CZ" : "EN"}</button>
               ))}
             </div>
-            <button aria-label={t(dict.nav.search)} className="hidden sm:block hover:text-mute">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+            <button aria-label={t(dict.nav.search)} className="hover:text-mute">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
             </button>
             <Link href="/kosik/" aria-label={t(dict.nav.cart)} className="relative hover:text-mute">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 6h16l-1.5 9h-13z" /><path d="M9 20h.01M16 20h.01M4 6 3 3" /></svg>
-              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center bg-ink px-1 font-mono text-[10px] leading-none text-paper">3</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 7h12l1 13H5z" /><path d="M9 10V6a3 3 0 0 1 6 0v4" /></svg>
+              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-semibold leading-none text-paper">3</span>
             </Link>
             <button className="lg:hidden" aria-label={t(dict.nav.menu)} aria-expanded={open} onClick={() => setOpen(!open)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d={open ? "M5 5l14 14M19 5 5 19" : "M3 7h18M3 12h18M3 17h18"} /></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={open ? "M5 5l14 14M19 5 5 19" : "M3 7h18M3 12h18M3 17h18"} /></svg>
             </button>
           </div>
         </div>
       </div>
       {open && (
         <nav className="border-b hairline lg:hidden" aria-label="Mobile">
-          <div className="container-x grid py-3">
+          <div className="container-x grid py-2">
             {links.map((l) => (
-              <Link key={l.key} href={l.href} onClick={() => setOpen(false)} className="border-b hairline py-3 text-[15px] font-medium last:border-0">
+              <Link key={l.key} href={l.href} onClick={() => setOpen(false)} className="border-b hairline py-3.5 text-[13px] font-semibold uppercase tracking-[0.14em] last:border-0">
                 {t(dict.nav[l.key])}
               </Link>
             ))}

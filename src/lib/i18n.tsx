@@ -41,6 +41,7 @@ export const dict = {
     featuredEyebrow: { cs: "Vybrané modely", en: "Featured models" },
     featuredTitle: { cs: "Právě skladem", en: "In stock now" },
     all: { cs: "Celý sortiment", en: "Full range" },
+    slide: { cs: "Snímek", en: "Slide" },
     homolEyebrow: { cs: "Jak číst štítek", en: "Reading the badge" },
     homolTitle: { cs: "Homologace rozhoduje, kde smíte jezdit.", en: "Homologation decides where you can ride." },
     homolLead: {
@@ -50,6 +51,7 @@ export const dict = {
     brandsEyebrow: { cs: "Značky", en: "Brands" },
     brandsTitle: { cs: "Autorizovaný prodej a servis", en: "Authorised sales and service" },
     newsEyebrow: { cs: "Aktuálně", en: "News" },
+    allNews: { cs: "Všechny aktuality", en: "All news" },
     serviceTitle: { cs: "Servis, který zná váš stroj.", en: "Service that knows your machine." },
     serviceLead: {
       cs: "Záruční i pozáruční servis čtyřkolek, skútrů a zahradní techniky. Pneuservis, sezónní prohlídky, náhradní díly skladem.",
@@ -73,6 +75,20 @@ export const dict = {
     new: { cs: "Novinka", en: "New" },
     sale: { cs: "Akce", en: "Sale" },
     demo: { cs: "Předváděcí", en: "Demo" },
+    buy: { cs: "Koupit", en: "Buy" },
+    filters: { cs: "Filtr", en: "Filter" },
+    reset: { cs: "Zrušit filtr", en: "Clear filter" },
+  },
+  news: [
+    { tag: { cs: "Novinka", en: "New" }, title: { cs: "Kentoya V-Cross 125 dorazil do showroomu", en: "The Kentoya V-Cross 125 has arrived in the showroom" }, text: { cs: "Čtrnáct koní, ABS s ASR a osmipalcový displej. Přijeďte si ho vyzkoušet, předváděcí kus je připravený.", en: "Fourteen horsepower, ABS with ASR and an eight-inch display. Come and try it, the demo bike is ready." } },
+    { tag: { cs: "Akce", en: "Offer" }, title: { cs: "Jarní cashback TGB Blade až 30 000 Kč", en: "TGB Blade spring cashback up to 30 000 Kč" }, text: { cs: "Blade 600 a 1000 LTX MAX v akční ceně dovozce do vyprodání zásob.", en: "Blade 600 and 1000 LTX MAX at the importer's promotional price while stocks last." } },
+    { tag: { cs: "Servis", en: "Service" }, title: { cs: "Zazimování čtyřkolek a skútrů", en: "Winter storage prep for ATVs and scooters" }, text: { cs: "Objednejte se na podzimní prohlídku. Konzervace, kontrola baterie a uskladnění na přání.", en: "Book an autumn inspection. Preservation, battery check and storage on request." } },
+  ],
+  campaign: {
+    eyebrow: { cs: "Pracovní čtyřkolky", en: "Utility ATVs" },
+    title: { cs: "Postavené pro les, pole a zimu.", en: "Built for forest, field and winter." },
+    text: { cs: "CFMOTO, Linhai a TGB s traktorovou homologací T3b. Naviják, radlice a tažné zařízení namontujeme před předáním.", en: "CFMOTO, Linhai and TGB with T3b tractor homologation. Winch, plow and hitch fitted before handover." },
+    cta: { cs: "Zobrazit čtyřkolky", en: "See ATVs" },
   },
   product: {
     addToCart: { cs: "Přidat do košíku", en: "Add to cart" },

@@ -1,6 +1,6 @@
 # Moto Dvořák · e-shop design mockup
 
-Static design mockup of an e-commerce storefront for **Moto Dvořák** (Golčův Jeníkov; ATVs, UTVs, motorcycles, scooters, accessories, service), built in the visual language of SIGMA Imaging Nordic's site: white ground, monochrome type, hairline grids, product tiles on a light grey field, and a small square "line mark" on every product. Here that mark carries the vehicle's homologation class (T3b / L7e / L3e / L1e), which tells a Czech buyer what licence and plate the machine needs.
+Static design mockup of an e-commerce storefront for **Moto Dvořák** (Golčův Jeníkov; ATVs, UTVs, motorcycles, scooters, accessories, service), styled after the look and feel of SIGMA Imaging Nordic's site: photography-led full-bleed heroes and campaign banners with text overlays, a white header with spaced uppercase navigation, product cards on white with a buy button, hairline dividers, a light grey brand band, and a charcoal footer with newsletter and social links.
 
 ## Run
 
@@ -28,4 +28,4 @@ Language toggle (CZ / EN) sits in the header; all UI copy and product descriptio
 
 `src/data/catalog.ts` holds 56 products across CFMOTO, Linhai, TGB, Kentoya and TUMOTO. The live motodvorak.cz site could not be fetched from the build environment, so the range was **reconstructed** from search-index snippets of motodvorak.cz product pages plus each importer's current Czech line-up and price lists. Prices are in Kč incl. VAT and should be checked against the shop's own list before going live. Editing that one file updates every page.
 
-Product photography is replaced by inline SVG line drawings (`src/components/Art.tsx`), one per vehicle type. Swap in real photos by rendering an `<img>` inside the `.tile-art` container in `ProductCard.tsx` and `ProductView.tsx`.
+Product photography is stood in for by `src/components/Photo.tsx`, a studio-backdrop placeholder sized like the final image. Replace it with an `<img>` (or `next/image`) at each call site once photos are available; the surrounding layout does not change.

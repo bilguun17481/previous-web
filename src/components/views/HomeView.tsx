@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Art } from "@/components/Art";
-import { HomolBadge } from "@/components/Badge";
+import { Photo } from "@/components/Photo";
 import { ProductCard } from "@/components/ProductCard";
 import { brands, byCategory, bySlug, categories, formatKc, products } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
@@ -17,116 +16,122 @@ export function HomeView() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="bg-tile">
-        <div className="container-x grid min-h-[calc(100vh-7rem)] grid-cols-1 items-center gap-8 py-12 lg:grid-cols-[5fr_7fr] lg:py-0">
-          <div className="order-2 lg:order-1">
-            <div className="eyebrow rise">{t(dict.hero.eyebrow)} · Kentoya</div>
-            <h1 className="display rise rise-2 mt-4 text-[64px] font-medium leading-[0.92] sm:text-[88px] lg:text-[104px]">
-              {t(dict.hero.title)}
-            </h1>
-            <p className="rise rise-3 mt-6 max-w-md text-[15px] leading-relaxed text-neutral-700">{t(dict.hero.lead)}</p>
-            <div className="rise rise-3 mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
-              <div>
-                <div className="eyebrow">{t(dict.hero.from)}</div>
-                <div className="mt-1 font-mono text-[20px]">
-                  <span className="text-signal">{formatKc(hero.price)}</span>
-                  <span className="ml-2 text-[14px] text-mute line-through">{formatKc(hero.oldPrice!)}</span>
-                </div>
+      {/* Hero: full-bleed campaign photo with text overlay */}
+      <section className="relative text-paper">
+        <Photo label={hero.name} tone="dark" ratio="aspect-[4/5] sm:aspect-[16/9] lg:aspect-[21/9]" hint={`${hero.brand} ${hero.name}`} />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="container-x absolute inset-x-0 bottom-0 pb-10 sm:pb-14 lg:pb-20">
+          <div className="max-w-xl">
+            <div className="eyebrow rise !text-neutral-300">{t(dict.hero.eyebrow)} · Kentoya</div>
+            <h1 className="rise rise-2 mt-3 text-[44px] font-bold leading-[1.02] tracking-[-0.02em] sm:text-[64px] lg:text-[76px]">{t(dict.hero.title)}</h1>
+            <p className="rise rise-3 mt-4 max-w-md text-[15px] leading-relaxed text-neutral-200">{t(dict.hero.lead)}</p>
+            <div className="rise rise-3 mt-7 flex flex-wrap items-center gap-4">
+              <Link href={`/produkt/${hero.slug}/`} className="btn-white">{t(dict.hero.cta)}</Link>
+              <span className="text-[14px]">
+                <span className="text-neutral-300">{t(dict.hero.from)} </span>
+                <span className="font-semibold">{formatKc(hero.price)}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="absolute bottom-5 right-5 flex gap-1.5 sm:right-10" aria-hidden>
+          {[0, 1, 2].map((i) => <span key={i} className={`h-1.5 w-6 ${i === 0 ? "bg-paper" : "bg-paper/40"}`} />)}
+        </div>
+      </section>
+
+      {/* Range tiles */}
+      <section className="container-x py-16">
+        <div className="text-center">
+          <div className="eyebrow">{t(h.linesEyebrow)}</div>
+          <h2 className="h-section mt-3">{t(h.linesTitle)}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-[14px] leading-relaxed text-mute">{t(h.linesLead)}</p>
+        </div>
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {categories.filter((c) => c.slug !== "prislusenstvi").map((c) => (
+            <Link key={c.slug} href={`/${c.slug}/`} className="group relative block overflow-hidden text-paper">
+              <Photo label={t(c.label)} tone="dark" ratio="aspect-[3/4]" className="transition-transform duration-700 group-hover:scale-[1.03]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5">
+                <div className="text-[18px] font-semibold leading-tight sm:text-[22px]">{t(c.label)}</div>
+                <div className="mt-1 text-[12px] text-neutral-300">{byCategory(c.slug).length} {t(dict.catalog.models)}</div>
               </div>
-              <Link href={`/produkt/${hero.slug}/`} className="btn-ink">{t(dict.hero.cta)}</Link>
-            </div>
-          </div>
-          <div className="relative order-1 aspect-[4/3] w-full text-ink lg:order-2 lg:aspect-auto lg:h-[70vh]">
-            <Art kind="scooter" draw className="h-full w-full" />
-            <div className="absolute bottom-0 right-0 flex items-center gap-3">
-              <HomolBadge code="L3e" size="lg" />
-              <span className="font-mono text-[11px] tracking-[0.12em] text-mute">125 CCM · 14 K · ABS + ASR</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Lines */}
-      <section className="container-x py-20">
-        <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
-          <div>
-            <div className="eyebrow">{t(h.linesEyebrow)}</div>
-            <h2 className="display mt-3 text-[34px] font-medium leading-tight">{t(h.linesTitle)}</h2>
-            <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-mute">{t(h.linesLead)}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-px bg-hair lg:grid-cols-4">
-            {categories.filter((c) => c.slug !== "prislusenstvi").map((c) => (
-              <Link key={c.slug} href={`/${c.slug}/`} className="group bg-paper p-5 transition-colors hover:bg-tile">
-                <div className="aspect-[4/3] text-ink/70"><Art kind={c.art} className="h-full w-full transition-transform duration-500 group-hover:scale-105" /></div>
-                <div className="display mt-3 text-[17px] font-medium">{t(c.label)}</div>
-                <div className="mt-0.5 font-mono text-[11px] text-mute">{byCategory(c.slug).length} {t(dict.catalog.models)}</div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured */}
-      <section className="container-x border-t hairline py-20">
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="eyebrow">{t(h.featuredEyebrow)}</div>
-            <h2 className="display mt-3 text-[34px] font-medium leading-tight">{t(h.featuredTitle)}</h2>
-          </div>
-          <Link href="/ctyrkolky/" className="btn-link">{t(h.all)} <span aria-hidden>→</span></Link>
-        </div>
-        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-          {featured.map((p) => <ProductCard key={p.slug} p={p} />)}
-        </div>
-      </section>
-
-      {/* Homologation explainer, the signature */}
-      <section className="bg-tile">
-        <div className="container-x py-20">
-          <div className="max-w-2xl">
-            <div className="eyebrow">{t(h.homolEyebrow)}</div>
-            <h2 className="display mt-3 text-[34px] font-medium leading-tight">{t(h.homolTitle)}</h2>
-            <p className="mt-4 text-[14px] leading-relaxed text-mute">{t(h.homolLead)}</p>
-          </div>
-          <div className="mt-12 grid gap-px bg-hair sm:grid-cols-2 lg:grid-cols-4">
-            {(["T3b", "L7e", "L3e", "L1e"] as const).map((code) => (
-              <div key={code} className="bg-paper p-6">
-                <HomolBadge code={code} size="lg" />
-                <p className="mt-5 text-[13px] leading-relaxed">{t(dict.homol[code])}</p>
-                <div className="mt-4 font-mono text-[11px] text-mute">
-                  {products.filter((p) => p.homologation === code).length} {t(dict.catalog.models)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Brands */}
-      <section className="container-x py-20">
-        <div className="eyebrow">{t(h.brandsEyebrow)}</div>
-        <h2 className="display mt-3 text-[34px] font-medium leading-tight">{t(h.brandsTitle)}</h2>
-        <div className="mt-10 grid grid-cols-2 gap-px bg-hair md:grid-cols-5">
-          {brands.map((b) => (
-            <div key={b} className="bg-paper py-8 text-center">
-              <div className="display text-[22px] font-semibold uppercase tracking-tight">{b}</div>
-              <div className="mt-1 font-mono text-[11px] text-mute">{products.filter((p) => p.brand === b).length} {t(dict.catalog.models)}</div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* Service */}
-      <section className="container-x border-t hairline py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-2">
+      {/* Featured */}
+      <section className="container-x py-16">
+        <div className="flex items-end justify-between border-b hairline pb-5">
           <div>
-            <div className="eyebrow">{t(dict.nav.servis)}</div>
-            <h2 className="display mt-3 text-[34px] font-medium leading-tight">{t(h.serviceTitle)}</h2>
-            <p className="mt-4 max-w-md text-[14px] leading-relaxed text-mute">{t(h.serviceLead)}</p>
-            <Link href="/servis/" className="btn-ghost mt-8">{t(h.serviceCta)}</Link>
+            <div className="eyebrow">{t(h.featuredEyebrow)}</div>
+            <h2 className="h-section mt-2">{t(h.featuredTitle)}</h2>
           </div>
-          <div className="tile-art aspect-[16/9] text-ink/70"><Art kind="gear" className="p-[14%]" /></div>
+          <Link href="/ctyrkolky/" className="btn-link">{t(h.all)} <span aria-hidden>→</span></Link>
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 lg:grid-cols-4">
+          {featured.map((p) => <ProductCard key={p.slug} p={p} />)}
+        </div>
+      </section>
+
+      {/* Campaign banner */}
+      <section className="relative text-paper">
+        <Photo label={t(dict.campaign.title)} tone="dark" ratio="aspect-[4/5] sm:aspect-[16/7]" hint="CFMOTO GLADIATOR X520" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+        <div className="container-x absolute inset-0 flex items-center">
+          <div className="max-w-md">
+            <div className="eyebrow !text-neutral-300">{t(dict.campaign.eyebrow)}</div>
+            <h2 className="mt-3 text-[32px] font-bold leading-tight tracking-[-0.02em] sm:text-[44px]">{t(dict.campaign.title)}</h2>
+            <p className="mt-4 text-[14px] leading-relaxed text-neutral-200">{t(dict.campaign.text)}</p>
+            <Link href="/ctyrkolky/" className="btn-outline-white mt-7">{t(dict.campaign.cta)}</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* News */}
+      <section className="container-x py-16">
+        <div className="flex items-end justify-between border-b hairline pb-5">
+          <h2 className="h-section">{t(h.newsEyebrow)}</h2>
+          <Link href="#" className="btn-link">{t(h.allNews)} <span aria-hidden>→</span></Link>
+        </div>
+        <div className="mt-8 grid gap-8 md:grid-cols-3">
+          {dict.news.map((n, i) => (
+            <article key={i} className="group">
+              <Photo label={t(n.title)} ratio="aspect-[3/2]" hint={t(n.tag)} className="transition-opacity group-hover:opacity-90" />
+              <div className="eyebrow mt-4">{t(n.tag)}</div>
+              <h3 className="mt-2 text-[18px] font-semibold leading-snug">{t(n.title)}</h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-mute">{t(n.text)}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Brands */}
+      <section className="bg-tile">
+        <div className="container-x py-14 text-center">
+          <div className="eyebrow">{t(h.brandsEyebrow)}</div>
+          <h2 className="h-section mt-2">{t(h.brandsTitle)}</h2>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-14 gap-y-6">
+            {brands.map((b) => (
+              <div key={b} className="text-center">
+                <div className="text-[22px] font-extrabold uppercase tracking-[-0.02em] text-ink/80">{b}</div>
+                <div className="mt-0.5 text-[11px] text-mute">{products.filter((p) => p.brand === b).length} {t(dict.catalog.models)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Service */}
+      <section className="container-x py-16">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <Photo label={t(h.serviceTitle)} ratio="aspect-[4/3]" hint={t(dict.nav.servis)} />
+          <div className="lg:pl-10">
+            <div className="eyebrow">{t(dict.nav.servis)}</div>
+            <h2 className="h-section mt-3">{t(h.serviceTitle)}</h2>
+            <p className="mt-4 max-w-md text-[14px] leading-relaxed text-mute">{t(h.serviceLead)}</p>
+            <Link href="/servis/" className="btn-ink mt-8">{t(h.serviceCta)}</Link>
+          </div>
         </div>
       </section>
     </>
