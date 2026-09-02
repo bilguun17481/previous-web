@@ -1,10 +1,15 @@
 "use client";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
+import { usePathname } from "next/navigation";
+import { useSettings } from "@/lib/settings";
 
 export function Footer() {
   const { t } = useLang();
   const f = dict.footer;
+  const pathname = usePathname();
+  const { store } = useSettings();
+  if (pathname?.startsWith("/admin")) return null;
   return (
     <footer className="mt-24 bg-charcoal text-paper">
       <div className="border-b border-neutral-800">
@@ -23,7 +28,7 @@ export function Footer() {
         <div>
           <div className="text-[20px] font-extrabold uppercase tracking-[-0.03em]">Moto Dvořák</div>
           <p className="mt-4 text-[13px] leading-relaxed text-neutral-400">
-            Dvořák a synové s.r.o.<br />Nádraží 604, 582 82 Golčův Jeníkov<br />+420 603 235 182<br />servis@elektrodvorak.cz
+            {store?.legal ?? "Dvořák a synové s.r.o."}<br />{store?.address ?? "Nádraží 604, 582 82 Golčův Jeníkov"}<br />{store?.phone ?? "+420 603 235 182"}<br />{store?.email ?? "servis@elektrodvorak.cz"}
           </p>
           <div className="mt-5 flex gap-3 text-neutral-400">
             {["facebook", "instagram", "youtube"].map((s) => (

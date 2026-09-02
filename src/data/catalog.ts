@@ -1,6 +1,6 @@
 export type Category = "ctyrkolky" | "utv" | "motocykly" | "skutry" | "prislusenstvi";
 export type Homologation = "T3b" | "L7e" | "L3e" | "L1e" | "—";
-export type Art = "atv" | "utv" | "moto" | "scooter" | "gear";
+export type Art = "atv" | "utv" | "moto" | "scooter" | "gear"; // legacy placeholder hint, unused by the photo tiles
 
 export interface Product {
   slug: string;

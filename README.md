@@ -2,49 +2,54 @@
 
 Static design mockup of an e-commerce storefront for **Moto Dvořák** (Golčův Jeníkov; ATVs, UTVs, motorcycles, scooters, accessories, service), styled after the look and feel of SIGMA Imaging Nordic's site: photography-led full-bleed heroes and campaign banners with text overlays, a white header with spaced uppercase navigation, product cards on white with a buy button, hairline dividers, a light grey brand band, and a charcoal footer with newsletter and social links.
 
-## Run
+## Architecture
+
+| Layer | What | Where |
+| --- | --- | --- |
+| Storefront | Next.js 16 App Router, Tailwind 4, CZ/EN toggle, cart, checkout | `src/app`, `src/components` |
+| Admin | Shopify-style back office at `/admin` | `src/app/admin`, `src/components/admin` |
+| Database, auth, storage | Supabase (Postgres with row-level security, email login, `media` bucket for photos and video) | `supabase/migrations`, `supabase/seed.sql` |
+| Payments | Stripe, GoPay, Comgate, PayPal, bank transfer, cash, behind one adapter interface | `src/lib/payments` |
+| Delivery | Zásilkovna/Packeta, PPL, GLS (label API), DPD, Česká pošta, FOFR (manual entry + tracking links), dealer delivery | `src/lib/shipping` |
+| Email | Order confirmations and status updates through Resend | `src/lib/notify.ts` |
+| Hosting | Netlify runs the full app; GitHub Pages serves a static storefront mirror | `netlify.toml`, `.github/workflows/pages.yml` |
+
+Without Supabase environment variables the storefront serves the bundled catalog and the admin runs in **demo mode** (sample orders and products kept in the browser), so everything can be explored before any account exists.
+
+## Admin features
+
+Dashboard with revenue, orders, average order and a setup checklist · Orders with filters, CSV export, status changes, carrier label creation, tracking, customer notifications and packing slip · Products with photo upload and reordering, MP4 upload or YouTube/Vimeo links, specs, colours, tags, stock, SEO, bulk actions · Customers · Discount codes (percent, fixed, free shipping, limits, dates) · Landing page builder with hero, category tiles, product rows, campaign banners, video, brands, image+text, rich text and news sections, all with image or video backgrounds · Media library · Category headers · Analytics (90 days, top products, category, payment and shipping mix) · Settings for store info, announcement bar, payments, shipping methods, taxes, notifications, theme colours, team invites, connections and domains.
+
+## Run locally
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # static export to ./out
+cp .env.example .env.local   # optional: fill in Supabase keys
+npm run dev                  # http://localhost:3000, admin at /admin
+npm run build && npm start
 ```
 
-Next.js 16 (App Router, static export), Tailwind CSS 4, TypeScript. No backend; the cart and checkout show a fixed sample state.
+## Go live (Supabase + Netlify)
 
-## Live site
+1. Create a project at supabase.com. In the SQL editor run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql`.
+2. On Netlify, import this repository. Add the variables from `.env.example` under Site configuration → Environment variables (at minimum the three Supabase values and `NEXT_PUBLIC_SITE_URL`).
+3. Deploy. Open `/admin/login`, choose "Create the owner account" and sign up; the first account becomes the owner.
+4. Add gateway and carrier keys when you have them. Each gateway's webhook URL is shown under Settings → Payments.
 
-Every push to `main` or `claude/ecommerce-website-design-bv748b` runs `.github/workflows/pages.yml`, which builds the static export with `NEXT_PUBLIC_BASE_PATH=/previous-web` and publishes it to the `gh-pages` branch. GitHub Pages serves that branch at:
+Gateways and carriers marked "manual" in Settings → Shipping have no public API without a contract; orders still record their tracking numbers and link to tracking pages.
+
+## Static mirror on GitHub Pages
+
+Every push runs `.github/workflows/pages.yml`, which strips the server-only parts (`src/app/api`, `src/app/admin`, `src/app/objednavka`, `src/proxy.ts`), builds with `STATIC_EXPORT=1` and a `/previous-web` base path, and publishes to the `gh-pages` branch:
 
 https://bilguun17481.github.io/previous-web/
 
-If the page shows a 404 after a green workflow run, open the repository's **Settings → Pages** and set the source to *Deploy from a branch*, branch `gh-pages`, folder `/ (root)`. That is a one-time step.
-
-## Pages
-
-| Route | What it is |
-| --- | --- |
-| `/` | Hero (V-Cross 125), category tiles, featured models, homologation explainer, brands, service |
-| `/ctyrkolky/`, `/utv/`, `/motocykly/`, `/skutry/`, `/prislusenstvi/` | Category listings with brand and homologation filters |
-| `/produkt/<slug>/` | Product detail: art, colours, price, specs table, related models |
-| `/kosik/`, `/pokladna/` | Cart and checkout mockups |
-| `/servis/`, `/kontakt/` | Service offer and contact details |
-
-Language toggle (CZ / EN) sits in the header; all UI copy and product descriptions live in `src/lib/i18n.tsx` and `src/data/catalog.ts`.
+If that shows a 404 after a green run, set Settings → Pages → Source to *Deploy from a branch*, branch `gh-pages`, folder `/ (root)`.
 
 ## Catalog data
 
-`src/data/catalog.ts` holds 56 products across CFMOTO, Linhai, TGB, Kentoya and TUMOTO. The live motodvorak.cz site could not be fetched from the build environment, so the range was **reconstructed** from search-index snippets of motodvorak.cz product pages plus each importer's current Czech line-up and price lists. Prices are in Kč incl. VAT and should be checked against the shop's own list before going live. Editing that one file updates every page.
+`src/data/catalog.ts` holds the 56 reconstructed products and seeds the database; once Supabase is connected the admin is the source of truth. Prices should be checked against the shop's own list.
 
-## Product images
+## Product images from motodvorak.cz
 
-`src/components/Photo.tsx` renders the real photograph when one exists and a studio-backdrop placeholder otherwise. Images are looked up by catalog slug in `src/data/images.json`, which maps to files in `public/products/`.
-
-To pull the pictures from motodvorak.cz (needs network access to that site, which the hosted build environment does not have):
-
-```bash
-npm run fetch-images -- --dry-run   # show which page each product matched
-npm run fetch-images                # download into public/products and write images.json
-```
-
-The script crawls the site, matches page titles to catalog names, and takes each page's main image. Products it cannot match are listed in the report; add them to `OVERRIDES` in `scripts/fetch-images.mjs` as slug → page path and rerun. Commit `public/products/` and `src/data/images.json` together.
+`npm run fetch-images` crawls motodvorak.cz, matches page titles to catalog products and downloads each main image into `public/products/`, writing `src/data/images.json`. Products with database images use those first. See `scripts/fetch-images.mjs` for the override map.
