@@ -12,6 +12,14 @@ npm run build    # static export to ./out
 
 Next.js 16 (App Router, static export), Tailwind CSS 4, TypeScript. No backend; the cart and checkout show a fixed sample state.
 
+## Live site
+
+Every push to `main` or `claude/ecommerce-website-design-bv748b` runs `.github/workflows/pages.yml`, which builds the static export with `NEXT_PUBLIC_BASE_PATH=/previous-web` and publishes it to the `gh-pages` branch. GitHub Pages serves that branch at:
+
+https://bilguun17481.github.io/previous-web/
+
+If the page shows a 404 after a green workflow run, open the repository's **Settings → Pages** and set the source to *Deploy from a branch*, branch `gh-pages`, folder `/ (root)`. That is a one-time step.
+
 ## Pages
 
 | Route | What it is |
