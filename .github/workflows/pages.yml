@@ -22,8 +22,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The Pages mirror is a static storefront: strip the server-only parts before exporting.
+      - run: rm -rf src/app/api src/app/admin src/app/objednavka src/proxy.ts
+      - run: sed -i 's/dynamicParams = true/dynamicParams = false/' 'src/app/produkt/[slug]/page.tsx'
       - run: npm run build
         env:
+          STATIC_EXPORT: "1"
           NEXT_PUBLIC_BASE_PATH: /previous-web
       # Publishes ./out to the gh-pages branch; GitHub Pages serves that branch.
       - uses: peaceiris/actions-gh-pages@v4
