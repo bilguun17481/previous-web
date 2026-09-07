@@ -6,6 +6,7 @@ import { repo } from "@/lib/admin/repo";
 import { Badge, Button, downloadCsv, Input, LinkButton, money, PageHeader, Select, Table, Td, useAsync, useT, useToast } from "@/components/admin/ui";
 import { primaryImage } from "@/lib/productImage";
 import { categories } from "@/data/catalog";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 
 export default function Products() {
   const { t } = useT();
@@ -14,7 +15,7 @@ export default function Products() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const { data, reload } = useAsync(() => repo().products.list());
   const list = useMemo(() => (data ?? []).filter((p) => (!cat || p.category === cat) && (!status || p.status === status) && (!q || `${p.name} ${p.brand} ${p.sku ?? ""}`.toLowerCase().includes(q.toLowerCase()))), [data, q, cat, status]);
-  const bulk = async (s: "active" | "archived") => { for (const id of sel) { const p = list.find((x) => x.id === id); if (p) await repo().products.save({ ...p, status: s }); } setSel(new Set()); toast(t(adm.common.saved)); reload(); };
+  const bulk = async (s: "active" | "archived") => { for (const id of sel) { const p = list.find((x) => x.id === id); if (p) await repo().products.save({ ...p, status: s }); } setSel(new Set()); await refreshStorefront(["/", "/ctyrkolky/", "/utv/", "/motocykly/", "/skutry/", "/prislusenstvi/"]); toast(t(adm.common.saved)); reload(); };
   const tone = (s?: string) => (s === "active" ? "green" : s === "draft" ? "amber" : "neutral");
   return (
     <>

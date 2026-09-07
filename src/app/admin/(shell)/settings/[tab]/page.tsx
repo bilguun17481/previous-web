@@ -6,6 +6,7 @@ import { adm } from "@/lib/admin/i18n";
 import { repo, type Profile } from "@/lib/admin/repo";
 import { Badge, Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useAsync, useT, useToast } from "@/components/admin/ui";
 import { supabaseConfigured } from "@/lib/supabase/env";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 import type { PaymentMethod, ShippingMethod, StoreSettings, Text } from "@/lib/types";
 
 type Status = { payments: Record<string, boolean>; carriers: Record<string, { configured: boolean; capability: string }>; email: boolean; packetaWidget: boolean; siteUrl: string | null };
@@ -32,7 +33,7 @@ function useSetting<T>(key: string, fallback: T) {
 }
 function SaveBar({ onSave }: { onSave: () => Promise<void> }) {
   const { t } = useT(); const toast = useToast(); const [busy, setBusy] = useState(false);
-  return <Button disabled={busy} onClick={async () => { setBusy(true); try { await onSave(); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } setBusy(false); }}>{t(adm.common.save)}</Button>;
+  return <Button disabled={busy} onClick={async () => { setBusy(true); try { await onSave(); await refreshStorefront(["/", "/pokladna/"]); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } setBusy(false); }}>{t(adm.common.save)}</Button>;
 }
 function useStatus() { const [s, setS] = useState<Status | null>(null); useEffect(() => { if (supabaseConfigured) fetch("/api/admin/status").then((r) => r.ok ? r.json() : null).then(setS).catch(() => {}); }, []); return s; }
 
@@ -65,7 +66,7 @@ function General() {
 function Payments() {
   const { t } = useT(); const toast = useToast(); const status = useStatus();
   const { data, setData } = useAsync(() => repo().payments.list());
-  const save = async (m: PaymentMethod) => { await repo().payments.save(m); toast(t(adm.common.saved)); };
+  const save = async (m: PaymentMethod) => { await repo().payments.save(m); await refreshStorefront(["/pokladna/"]); toast(t(adm.common.saved)); };
   const site = status?.siteUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
   return (
     <div className="space-y-4">

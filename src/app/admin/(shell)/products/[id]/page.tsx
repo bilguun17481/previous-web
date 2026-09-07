@@ -5,6 +5,7 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT, useToast } from "@/components/admin/ui";
 import { brands, categories } from "@/data/catalog";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
 import type { ShopProduct } from "@/lib/types";
 
@@ -32,12 +33,13 @@ export default function ProductEditor() {
     try {
       const slug = p.slug || slugify(`${p.brand} ${p.name}`);
       const newId = await repo().products.save({ ...p, slug, status: status ?? p.status });
+      await refreshStorefront(["/", `/${p.category}/`, `/produkt/${slug}/`]);
       toast(t(adm.common.saved));
       if (isNew) router.replace(`/admin/products/${newId}/`); else setP({ ...p, slug, status: status ?? p.status });
     } catch (e) { toast((e as Error).message, "err"); }
     setBusy(false);
   };
-  const remove = async () => { if (!confirm(t(adm.common.confirmDelete))) return; await repo().products.remove(p.id!); router.push("/admin/products/"); };
+  const remove = async () => { if (!confirm(t(adm.common.confirmDelete))) return; await repo().products.remove(p.id!); await refreshStorefront(["/", `/${p.category}/`]); router.push("/admin/products/"); };
   const uploadImages = async (files: FileList) => {
     const imgs = [...(p.images ?? [])];
     for (const f of Array.from(files)) { try { const m = await repo().media.upload(f, setPct); imgs.push({ url: m.url, alt: p.name }); } catch (e) { toast((e as Error).message, "err"); } }
