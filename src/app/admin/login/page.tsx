@@ -1,10 +1,11 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { useT, Input, Field, Button } from "@/components/admin/ui";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 function Login() {
   const { t } = useT();
@@ -13,6 +14,14 @@ function Login() {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  // Arriving from a confirmation link (or already signed in): go straight to the admin.
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    const sb = supabaseBrowser();
+    sb.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { if (data.session) { router.replace(next); router.refresh(); } });
+    const { data: sub } = sb.auth.onAuthStateChange((_e: string, session: Session | null) => { if (session) { router.replace(next); router.refresh(); } });
+    return () => sub.subscription.unsubscribe();
+  }, [next, router]);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMsg(null);
     const sb = supabaseBrowser();
