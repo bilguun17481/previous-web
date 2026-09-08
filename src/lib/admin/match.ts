@@ -4,7 +4,7 @@ import type { ShopProduct } from "@/lib/types";
 const strip = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 /** File name without folder, extension, and a trailing view/sequence suffix such as "-2" or " front". */
 export const fileLabel = (path: string) =>
-  strip(path.split("/").pop() ?? path).replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[-_ ]?(\d{1,2}|front|back|side|left|right|detail|main|hero)$/i, "");
+  strip(path.split("/").pop() ?? path).replace(/\.[a-z0-9]{2,5}$/i, "").replace(/(?:[-_ ]\d{1,2}|[-_ ]?(?:front|back|side|left|right|detail|main|hero))$/i, "");
 
 const tokens = (s: string) =>
   strip(s).replace(/(\d)\s(\d{3})\b/g, "$1$2").replace(/([a-z])(\d)/g, "$1 $2").replace(/(\d)([a-z])/g, "$1 $2").split(/[^a-z0-9]+/).filter(Boolean);
@@ -27,5 +27,5 @@ export function score(label: string, p: ShopProduct) {
 export function bestMatch(label: string, products: ShopProduct[]) {
   let best: { p: ShopProduct; s: number } | null = null;
   for (const p of products) { const s = score(label, p); if (!best || s > best.s) best = { p, s }; }
-  return best && best.s >= 0.45 ? best : null;
+  return best && best.s >= 0.3 ? best : null;
 }
