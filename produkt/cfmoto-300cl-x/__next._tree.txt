@@ -1,0 +1,3 @@
+:HL["/previous-web/_next/static/chunks/429teqfy-_6rj.css","style"]
+:HC["/",""]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"produkt","param":null,"prefetchHints":4192,"slots":{"children":{"name":"slug","param":{"type":"d","key":"cfmoto-300cl-x","siblings":[]},"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}}}},"staleTime":300,"buildId":"yWShK2oROs-V0BbNbzS-6"}
