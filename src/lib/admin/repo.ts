@@ -19,7 +19,7 @@ export interface Repo {
   customers: { list(): Promise<Customer[]> };
   discounts: { list(): Promise<Discount[]>; save(d: Partial<Discount>): Promise<void>; remove(id: string): Promise<void> };
   pages: { list(): Promise<Page[]>; get(slug: string): Promise<Page | null>; save(p: Page): Promise<void>; remove(slug: string): Promise<void> };
-  media: { list(): Promise<MediaItem[]>; upload(file: File, onProgress?: (pct: number) => void): Promise<MediaItem>; remove(item: MediaItem): Promise<void> };
+  media: { list(): Promise<MediaItem[]>; upload(file: File, onProgress?: (pct: number) => void, folder?: string): Promise<MediaItem>; remove(item: MediaItem): Promise<void> };
   settings: { get<T>(key: string): Promise<T | null>; set(key: string, value: unknown): Promise<void> };
   shipping: { list(): Promise<ShippingMethod[]>; save(m: ShippingMethod): Promise<void>; remove(id: string): Promise<void> };
   payments: { list(): Promise<PaymentMethod[]>; save(m: PaymentMethod): Promise<void> };
@@ -79,12 +79,14 @@ function supabaseRepo(): Repo {
     },
     media: {
       async list() { const { data } = await sb.from("media").select("*").order("created_at", { ascending: false }); return (data ?? []) as MediaItem[]; },
-      async upload(file, onProgress) {
+      async upload(file, onProgress, folder) {
         const kind = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : "file";
-        const safe = file.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").toLowerCase();
-        const path = `${kind}s/${Date.now()}-${safe}`;
+        const clean = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+        const safe = clean(file.name).toLowerCase();
+        const dir = folder ? folder.split("/").filter(Boolean).map(clean).join("/") : "";
+        const path = dir ? `${kind}s/${dir}/${safe}` : `${kind}s/${Date.now()}-${safe}`;
         onProgress?.(10);
-        const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
+        const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: true });
         fail(error);
         onProgress?.(90);
         const url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
@@ -215,10 +217,10 @@ function demoRepo(): Repo {
     },
     media: {
       async list() { return load().media; },
-      async upload(file, onProgress) {
+      async upload(file, onProgress, folder) {
         onProgress?.(30);
         const url = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(file); });
-        const item: MediaItem = { id: uid(), path: file.name, url: file.size < 1_500_000 ? url : URL.createObjectURL(file), kind: file.type.startsWith("video/") ? "video" : "image", mime: file.type, size: file.size, alt: { cs: "", en: "" }, created_at: new Date().toISOString() };
+        const item: MediaItem = { id: uid(), path: folder ? `${folder}/${file.name}` : file.name, url: file.size < 1_500_000 ? url : URL.createObjectURL(file), kind: file.type.startsWith("video/") ? "video" : "image", mime: file.type, size: file.size, alt: { cs: "", en: "" }, created_at: new Date().toISOString() };
         await mut((s) => { s.media.unshift(item); }); onProgress?.(100); return item;
       },
       async remove(item) { await mut((s) => { s.media = s.media.filter((m) => m.id !== item.id); }); },

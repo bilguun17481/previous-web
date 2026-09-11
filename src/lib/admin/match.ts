@@ -6,6 +6,9 @@ const strip = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerC
 export const fileLabel = (path: string) =>
   strip(path.split("/").pop() ?? path).replace(/\.[a-z0-9]{2,5}$/i, "").replace(/(?:[-_ ]\d{1,2}|[-_ ]?(?:front|back|side|left|right|detail|main|hero))$/i, "");
 
+/** Folder part of a media path, without the leading kind directory ("images/", "videos/"). */
+export const folderOf = (path: string) => { const parts = path.split("/").slice(0, -1); if (/^(images|videos|files)$/.test(parts[0] ?? "")) parts.shift(); return parts.join("/"); };
+
 const tokens = (s: string) =>
   strip(s).replace(/(\d)\s(\d{3})\b/g, "$1$2").replace(/([a-z])(\d)/g, "$1 $2").replace(/(\d)([a-z])/g, "$1 $2").split(/[^a-z0-9]+/).filter(Boolean);
 
