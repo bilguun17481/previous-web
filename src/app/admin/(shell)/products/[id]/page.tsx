@@ -25,6 +25,7 @@ export default function ProductEditor() {
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const drag = useRef<number | null>(null);
+  const colorDrag = useRef<number | null>(null);
   useEffect(() => { if (!isNew) repo().products.get(id).then((x) => setP(x ?? blank)); }, [id, isNew]);
   if (!p) return <p className="text-mute">{t(adm.common.loading)}</p>;
   const set = (patch: Partial<ShopProduct>) => setP({ ...p, ...patch });
@@ -134,13 +135,16 @@ export default function ProductEditor() {
             <div className="flex flex-wrap gap-3">{tags.map((tag) => <label key={tag} className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="accent-ink" checked={p.tags?.includes(tag)} onChange={(e) => set({ tags: e.target.checked ? [...(p.tags ?? []), tag] : (p.tags ?? []).filter((x) => x !== tag) })} />{tag}</label>)}</div>
           </Card>
           <Card title={t(adm.products.colors)}>
-            <p className="mb-3 text-[12px] text-mute">{t(adm.products.colorHint)}</p>
+            <p className="mb-3 text-[12px] text-mute">{t(adm.products.colorHint)} {t(adm.products.colorOrder)}</p>
             <div className="space-y-3">
               {p.colors.map((c, i) => {
                 const upd = (patch: Partial<{ hex: string; name: string; image: string | undefined }>) => set({ colors: p.colors.map((x, k): ProductColor => (k === i ? { hex: colorHex(x), name: colorName(x), image: colorImage(x), ...patch } : x)) });
+                const moveColor = (d: -1 | 1) => { const a = [...p.colors]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; set({ colors: a }); };
                 return (
-                  <div key={i} className="rounded-md border border-hair p-2">
+                  <div key={i} draggable onDragStart={() => (colorDrag.current = i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (colorDrag.current !== null && colorDrag.current !== i) { const a = [...p.colors]; const [m] = a.splice(colorDrag.current, 1); a.splice(i, 0, m); set({ colors: a }); } colorDrag.current = null; }} className="rounded-md border border-hair p-2">
                     <div className="flex items-center gap-2">
+                      <span className="cursor-move select-none text-mute" title={t(adm.products.dragHint)}>⋮⋮</span>
+                      <div className="flex flex-col"><button type="button" onClick={() => moveColor(-1)} disabled={i === 0} className="h-4 text-[10px] leading-none text-mute hover:text-ink disabled:opacity-30" aria-label={t(adm.pages.up)}>▲</button><button type="button" onClick={() => moveColor(1)} disabled={i === p.colors.length - 1} className="h-4 text-[10px] leading-none text-mute hover:text-ink disabled:opacity-30" aria-label={t(adm.pages.down)}>▼</button></div>
                       <input type="color" value={colorHex(c)} onChange={(e) => upd({ hex: e.target.value })} className="h-8 w-8 shrink-0 cursor-pointer rounded-full border border-hair" />
                       <Input value={colorName(c) ?? ""} placeholder={t(adm.products.colorName)} onChange={(e) => upd({ name: e.target.value })} />
                       <Button type="button" variant="ghost" onClick={() => set({ colors: p.colors.filter((_, k) => k !== i) })}>×</Button>
