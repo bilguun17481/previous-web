@@ -173,7 +173,7 @@ export default function Media() {
       const add = items.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true })).filter((i) => !existing.some((e) => e.url === i.url)).map((i) => ({ url: i.url, alt: p.name }));
       if (add.length) { await repo().products.save({ ...p, images: [...existing, ...add] }); n += add.length; }
     }
-    await refreshStorefront(STORE_PATHS); toast(`${n} ${t(adm.media.assigned)}`); setBusy(false); setReview(null); reload();
+    await refreshStorefront([...STORE_PATHS, ...Array.from(bySlug.keys()).map((s) => `/produkt/${s}/`)]); toast(`${n} ${t(adm.media.assigned)}`); setBusy(false); setReview(null); reload();
   };
 
   const FolderRow = ({ f, label, count }: { f: string | null; label: string; count: number }) => (

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 /** Public diagnostics: which settings are present and whether Supabase answers. Never returns key values. */
-export async function GET() {
+export async function GET(req: Request) {
+  const productSlug = new URL(req.url).searchParams.get("product");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -28,8 +29,15 @@ export async function GET() {
       if (r.status === 404 || /relation .* does not exist/.test(body)) problems.push("products table missing: run supabase/migrations/0001_init.sql");
     } catch (e) { db = `unreachable: ${(e as Error).message}`; }
   }
+  let product: unknown = undefined;
+  if (productSlug && url && anon) {
+    const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/products?select=slug,status,images,updated_at&slug=eq.${encodeURIComponent(productSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
+    const rows = (await r.json()) as { slug: string; status: string; images: { url: string }[]; updated_at: string }[];
+    product = rows[0] ? { slug: rows[0].slug, status: rows[0].status, imageCount: rows[0].images?.length ?? 0, firstImage: rows[0].images?.[0]?.url ?? null, updated_at: rows[0].updated_at } : "not found";
+  }
   return NextResponse.json({
     ok: problems.length === 0,
+    ...(product !== undefined ? { product } : {}),
     problems,
     env: { url: url ? url.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(anon), serviceKey: shape(service), siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "missing" },
     supabase: { auth, database: db },
