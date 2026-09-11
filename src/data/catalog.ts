@@ -1,6 +1,11 @@
 export type Category = "ctyrkolky" | "utv" | "motocykly" | "skutry" | "prislusenstvi";
 export type Homologation = "T3b" | "L7e" | "L3e" | "L1e" | "—";
-export type Art = "atv" | "utv" | "moto" | "scooter" | "gear"; // legacy placeholder hint, unused by the photo tiles
+export type Art = "atv" | "utv" | "moto" | "scooter" | "gear";
+/** A colour option: a plain hex string, or an object that can also name the colour and point at the photo it opens. */
+export type ProductColor = string | { hex: string; name?: string; image?: string };
+export const colorHex = (c: ProductColor) => (typeof c === "string" ? c : c.hex);
+export const colorName = (c: ProductColor) => (typeof c === "string" ? undefined : c.name);
+export const colorImage = (c: ProductColor) => (typeof c === "string" ? undefined : c.image); // legacy placeholder hint, unused by the photo tiles
 
 export interface Product {
   slug: string;
@@ -17,7 +22,7 @@ export interface Product {
   drive?: string;       // "4x4" | "2WD"
   short: { cs: string; en: string };
   specs: { label: { cs: string; en: string }; value: string }[];
-  colors: string[];     // hex swatches
+  colors: ProductColor[]; // swatches, optionally with a name and a landing photo
 }
 
 export const categories: {
@@ -91,6 +96,37 @@ export const products: Product[] = [
       { label: L("Určeno", "Intended for"), value: "10+ let, mimo veřejné komunikace" },
     ],
     colors: ["#1f1f1f", "#d71920", "#2c6bd6"],
+  },
+  {
+    slug: "cfmoto-gladiator-c4-g4",
+    brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR C4 G4",
+    price: 150990, homologation: "T3b", art: "atv", cc: 409, power: "24,5 kW / 33 k", drive: "4x4",
+    tags: ["new"],
+    short: L("Praktická pracovní čtyřkolka s novým motorem 192: tišší chod, méně vibrací, uzávěrka předního diferenciálu.", "Practical utility ATV with the new 192 engine: quieter running, less vibration, lockable front differential."),
+    specs: [
+      { label: L("Motor", "Engine"), value: "409 ccm, 1 válec, DOHC, 4 ventily, kapalinou chlazený, EFI" },
+      { label: L("Vrtání × zdvih", "Bore × stroke"), value: "91 × 76,2 mm" },
+      { label: L("Převodovka", "Transmission"), value: "CVT, L/H/N/R/P" },
+      { label: L("Pohon", "Drivetrain"), value: "2WD / 4WD, uzávěrka předního diferenciálu" },
+      { label: L("Homologace", "Homologation"), value: "T3b" },
+    ],
+    colors: ["#1f1f1f", "#5a6b3d", "#c9c9c9"],
+  },
+  {
+    slug: "cfmoto-gladiator-c5-g4",
+    brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR C5 G4 EPS",
+    price: 160990, homologation: "T3b", art: "atv", cc: 499, power: "29 kW / 39 k", drive: "4x4",
+    tags: ["new"],
+    short: L("Silnější sourozenec C4: motor 499 ccm, posilovač řízení a uzávěrka předního diferenciálu. Verze s ABS za 170 990 Kč.", "The C4's bigger sibling: 499 cc engine, power steering and a lockable front differential. ABS version at 170 990 Kč."),
+    specs: [
+      { label: L("Motor", "Engine"), value: "499 ccm, 1 válec, SOHC, 4 ventily, kapalinou chlazený, EFI" },
+      { label: L("Vrtání × zdvih", "Bore × stroke"), value: "92 × 75 mm" },
+      { label: L("Převodovka", "Transmission"), value: "CVT, L/H/N/R/P" },
+      { label: L("Pohon", "Drivetrain"), value: "2WD / 4WD, uzávěrka předního diferenciálu" },
+      { label: L("Řízení", "Steering"), value: "Elektrický posilovač EPS" },
+      { label: L("Homologace", "Homologation"), value: "T3b" },
+    ],
+    colors: ["#1f1f1f", "#5a6b3d", "#c9c9c9"],
   },
   {
     slug: "cfmoto-gladiator-x450",

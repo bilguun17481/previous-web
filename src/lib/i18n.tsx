@@ -97,6 +97,8 @@ export const dict = {
   product: {
     addToCart: { cs: "Přidat do košíku", en: "Add to cart" },
     added: { cs: "Přidáno do košíku", en: "Added to cart" },
+    prev: { cs: "Předchozí fotka", en: "Previous photo" },
+    next: { cs: "Další fotka", en: "Next photo" },
     reserve: { cs: "Rezervovat předvedení", en: "Book a test ride" },
     specs: { cs: "Technické údaje", en: "Specifications" },
     colors: { cs: "Barevné provedení", en: "Colour options" },

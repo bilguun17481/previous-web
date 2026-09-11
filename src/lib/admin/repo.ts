@@ -5,6 +5,7 @@ import { products as localProducts, categories as localCategories } from "@/data
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { defaultHome } from "@/lib/defaultHome";
+import { resizeImage, SIZES, variantPath } from "@/lib/mediaVariants";
 import type { Customer, Discount, MediaItem, Order, Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
 
 export interface Profile { id: string; email: string | null; full_name: string | null; role: "owner" | "admin" | "staff"; created_at: string }
@@ -19,7 +20,20 @@ export interface Repo {
   customers: { list(): Promise<Customer[]> };
   discounts: { list(): Promise<Discount[]>; save(d: Partial<Discount>): Promise<void>; remove(id: string): Promise<void> };
   pages: { list(): Promise<Page[]>; get(slug: string): Promise<Page | null>; save(p: Page): Promise<void>; remove(slug: string): Promise<void> };
-  media: { list(): Promise<MediaItem[]>; upload(file: File, onProgress?: (pct: number) => void): Promise<MediaItem>; remove(item: MediaItem): Promise<void> };
+  media: {
+    list(): Promise<MediaItem[]>;
+    upload(file: File, onProgress?: (pct: number) => void, folder?: string): Promise<MediaItem>;
+    remove(item: MediaItem): Promise<void>;
+    /** Move one file into another folder ("" = top level). Returns the updated row with its new URL. */
+    move(item: MediaItem, folder: string): Promise<MediaItem>;
+    /** Folders that exist even while empty. Folders with files are derived from paths. */
+    listFolders(): Promise<string[]>;
+    saveFolders(folders: string[]): Promise<void>;
+    /** Create the thumb and card variants for one stored image. Returns false when the browser cannot decode it. */
+    makeVariants(item: MediaItem): Promise<boolean>;
+    /** True when the variants already exist for the item. */
+    hasVariants(item: MediaItem): Promise<boolean>;
+  };
   settings: { get<T>(key: string): Promise<T | null>; set(key: string, value: unknown): Promise<void> };
   shipping: { list(): Promise<ShippingMethod[]>; save(m: ShippingMethod): Promise<void>; remove(id: string): Promise<void> };
   payments: { list(): Promise<PaymentMethod[]>; save(m: PaymentMethod): Promise<void> };
@@ -45,6 +59,16 @@ const productToRow = (p: Partial<ShopProduct>) => ({
 function supabaseRepo(): Repo {
   const sb = supabaseBrowser();
   const fail = (e: { message: string } | null) => { if (e) throw new Error(e.message); };
+  const uploadVariants = async (path: string, blob: Blob) => {
+    let ok = true;
+    for (const size of ["thumb", "card"] as const) {
+      const small = await resizeImage(blob, SIZES[size]);
+      if (!small) { ok = false; continue; }
+      const { error } = await sb.storage.from("media").upload(variantPath(path, size), small, { contentType: "image/webp", upsert: true });
+      if (error) ok = false;
+    }
+    return ok;
+  };
   return {
     mode: "supabase",
     orders: {
@@ -79,20 +103,42 @@ function supabaseRepo(): Repo {
     },
     media: {
       async list() { const { data } = await sb.from("media").select("*").order("created_at", { ascending: false }); return (data ?? []) as MediaItem[]; },
-      async upload(file, onProgress) {
+      async upload(file, onProgress, folder) {
         const kind = file.type.startsWith("video/") ? "video" : file.type.startsWith("image/") ? "image" : "file";
-        const safe = file.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").toLowerCase();
-        const path = `${kind}s/${Date.now()}-${safe}`;
+        const clean = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+        const safe = clean(file.name).toLowerCase();
+        const dir = folder ? folder.split("/").filter(Boolean).map(clean).join("/") : "";
+        const path = dir ? `${kind}s/${dir}/${safe}` : `${kind}s/${Date.now()}-${safe}`;
         onProgress?.(10);
-        const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
+        const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: true });
         fail(error);
+        onProgress?.(70);
+        if (kind === "image") await uploadVariants(path, file);
         onProgress?.(90);
         const url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
         const { data, error: e2 } = await sb.from("media").insert({ path, url, kind, mime: file.type, size: file.size, alt: {} }).select("*").single();
         fail(e2); onProgress?.(100);
         return data as MediaItem;
       },
-      async remove(item) { await sb.storage.from("media").remove([item.path]); const { error } = await sb.from("media").delete().eq("id", item.id); fail(error); },
+      async remove(item) { await sb.storage.from("media").remove([item.path, variantPath(item.path, "thumb"), variantPath(item.path, "card")]); const { error } = await sb.from("media").delete().eq("id", item.id); fail(error); },
+      async move(item, folder) {
+        const clean = (x: string) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+        const parts = item.path.split("/");
+        const kindDir = /^(images|videos|files)$/.test(parts[0]) ? parts[0] : "images";
+        const name = parts[parts.length - 1];
+        const dir = folder.split("/").filter(Boolean).map(clean).join("/");
+        const newPath = dir ? `${kindDir}/${dir}/${name}` : `${kindDir}/${name}`;
+        if (newPath === item.path) return item;
+        const { error } = await sb.storage.from("media").move(item.path, newPath); fail(error);
+        if (item.kind === "image") for (const size of ["thumb", "card"] as const) await sb.storage.from("media").move(variantPath(item.path, size), variantPath(newPath, size)).catch(() => {});
+        const url = sb.storage.from("media").getPublicUrl(newPath).data.publicUrl;
+        const { data, error: e2 } = await sb.from("media").update({ path: newPath, url }).eq("id", item.id).select("*").single(); fail(e2);
+        return data as MediaItem;
+      },
+      async listFolders() { const { data } = await sb.from("settings").select("value").eq("key", "media_folders").maybeSingle(); return ((data?.value as { list?: string[] })?.list) ?? []; },
+      async makeVariants(item) { if (item.kind !== "image") return false; const r = await fetch(item.url); if (!r.ok) return false; return uploadVariants(item.path, await r.blob()); },
+      async hasVariants(item) { if (item.kind !== "image") return true; const url = sb.storage.from("media").getPublicUrl(variantPath(item.path, "card")).data.publicUrl; const r = await fetch(url, { method: "HEAD" }).catch(() => null); return Boolean(r && r.ok); },
+      async saveFolders(folders) { const { error } = await sb.from("settings").upsert({ key: "media_folders", value: { list: folders } }); fail(error); },
     },
     settings: {
       async get(key) { const { data } = await sb.from("settings").select("value").eq("key", key).maybeSingle(); return (data?.value as never) ?? null; },
@@ -215,13 +261,18 @@ function demoRepo(): Repo {
     },
     media: {
       async list() { return load().media; },
-      async upload(file, onProgress) {
+      async upload(file, onProgress, folder) {
         onProgress?.(30);
         const url = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(file); });
-        const item: MediaItem = { id: uid(), path: file.name, url: file.size < 1_500_000 ? url : URL.createObjectURL(file), kind: file.type.startsWith("video/") ? "video" : "image", mime: file.type, size: file.size, alt: { cs: "", en: "" }, created_at: new Date().toISOString() };
+        const item: MediaItem = { id: uid(), path: folder ? `${folder}/${file.name}` : file.name, url: file.size < 1_500_000 ? url : URL.createObjectURL(file), kind: file.type.startsWith("video/") ? "video" : "image", mime: file.type, size: file.size, alt: { cs: "", en: "" }, created_at: new Date().toISOString() };
         await mut((s) => { s.media.unshift(item); }); onProgress?.(100); return item;
       },
       async remove(item) { await mut((s) => { s.media = s.media.filter((m) => m.id !== item.id); }); },
+      async move(item, folder) { const name = item.path.split("/").pop()!; const path = folder ? `${folder}/${name}` : name; const next = { ...item, path }; await mut((s) => { s.media = s.media.map((m) => (m.id === item.id ? next : m)); }); return next; },
+      async listFolders() { return ((load().settings.media_folders as { list?: string[] })?.list) ?? []; },
+      async makeVariants() { return true; },
+      async hasVariants() { return true; },
+      async saveFolders(folders) { await mut((s) => { s.settings.media_folders = { list: folders }; }); },
     },
     settings: { async get(key) { return (load().settings[key] as never) ?? null; }, async set(key, value) { await mut((s) => { s.settings[key] = value; }); } },
     shipping: { async list() { return load().shipping; }, async save(m) { await mut((s) => { const i = s.shipping.findIndex((x) => x.id === m.id); if (i >= 0) s.shipping[i] = m; else s.shipping.push(m); }); }, async remove(id) { await mut((s) => { s.shipping = s.shipping.filter((m) => m.id !== id); }); } },

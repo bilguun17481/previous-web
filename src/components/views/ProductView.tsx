@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
 import { Video } from "@/components/Media";
 import { ProductCard } from "@/components/ProductCard";
-import { formatKc } from "@/data/catalog";
+import { colorHex, colorImage, colorName, formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
 import { imageFor } from "@/lib/images";
@@ -27,6 +27,15 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
     ...(p.videos ?? []).map((v, i) => ({ kind: "video" as const, video: v, label: v.title ?? `Video ${i + 1}` })),
   ];
   const cur = slides[active] ?? slides[0];
+  const go = (d: 1 | -1) => setActive((a) => (a + d + slides.length) % slides.length);
+  const touchX = useRef<number | null>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
+  // Keyboard arrows move through the gallery; the active thumbnail scrolls into view.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (slides.length < 2 || (e.target as HTMLElement)?.tagName === "INPUT") return; if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1); };
+    window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
+  }, [slides.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { stripRef.current?.children[active]?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" }); }, [active]);
   const out = p.stock !== undefined && p.stock <= 0;
   const onAdd = () => { add({ slug: p.slug, name: p.name, brand: p.brand, price: p.price, image: images[0] }); setAdded(true); setTimeout(() => setAdded(false), 1800); };
 
@@ -37,23 +46,34 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
       </div>
       <section className="container-x grid gap-10 lg:grid-cols-[7fr_5fr]">
         <div>
-          <div className="relative">
+          <div className="relative select-none" onTouchStart={(e) => (touchX.current = e.touches[0].clientX)} onTouchEnd={(e) => { if (touchX.current === null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); touchX.current = null; }}>
             {cur.kind === "video"
               ? <div className="aspect-square bg-ink sm:aspect-[4/3]"><Video video={cur.video} className="h-full w-full" /></div>
-              : <Photo label={p.name} src={cur.url} ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name}`} />}
+              : <Photo label={p.name} src={cur.url} priority ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name}`} />}
             {p.tags && (
               <div className="absolute left-4 top-4 flex gap-1.5">
                 {p.tags.map((tag) => <span key={tag} className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none ${tag === "sale" ? "bg-signal text-paper" : "bg-ink text-paper"}`}>{t(dict.catalog[tag])}</span>)}
               </div>
             )}
+            {slides.length > 1 && (
+              <>
+                <button type="button" onClick={() => go(-1)} aria-label={t(d.prev)} className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-paper/90 text-ink shadow-md transition hover:bg-paper focus-visible:outline-2 focus-visible:outline-ink">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+                </button>
+                <button type="button" onClick={() => go(1)} aria-label={t(d.next)} className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-paper/90 text-ink shadow-md transition hover:bg-paper focus-visible:outline-2 focus-visible:outline-ink">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+                <div className="absolute bottom-3 right-3 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-paper">{active + 1} / {slides.length}</div>
+              </>
+            )}
           </div>
           {slides.length > 1 && (
-            <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-5">
+            <div ref={stripRef} className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]">
               {slides.map((s, i) => (
-                <button key={i} onClick={() => setActive(i)} aria-pressed={active === i} className={`relative border ${active === i ? "border-ink" : "border-transparent hover:border-hair"}`}>
+                <button key={i} onClick={() => setActive(i)} aria-pressed={active === i} className={`relative w-[22%] shrink-0 border sm:w-[18%] ${active === i ? "border-ink" : "border-transparent hover:border-hair"}`}>
                   {s.kind === "video"
                     ? <div className="flex aspect-[4/3] items-center justify-center bg-ink text-paper"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></div>
-                    : <Photo label={`${p.name} ${s.label}`} src={s.url} ratio="aspect-[4/3]" hint={s.label} />}
+                    : <Photo label={`${p.name} ${s.label}`} src={s.url} size="thumb" ratio="aspect-[4/3]" hint={s.label} />}
                 </button>
               ))}
             </div>
@@ -73,8 +93,12 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
             <div className="mt-6">
               <div className="text-[12px] font-semibold uppercase tracking-[0.14em]">{t(d.colors)}</div>
               <div className="mt-2 flex gap-2">
-                {p.colors.map((c, i) => <button key={c} onClick={() => setColor(i)} aria-label={`Color ${i + 1}`} aria-pressed={color === i} className={`h-7 w-7 rounded-full border ${color === i ? "border-ink ring-1 ring-ink ring-offset-2" : "border-hair"}`} style={{ background: c }} />)}
+                {p.colors.map((c, i) => {
+                  const img = colorImage(c); const idx = img ? slides.findIndex((s) => s.kind === "image" && s.url === img) : -1;
+                  return <button key={i} onClick={() => { setColor(i); if (idx >= 0) setActive(idx); }} title={colorName(c)} aria-label={colorName(c) ?? `Color ${i + 1}`} aria-pressed={color === i} className={`h-7 w-7 rounded-full border ${color === i ? "border-ink ring-1 ring-ink ring-offset-2" : "border-hair"}`} style={{ background: colorHex(c) }} />;
+                })}
               </div>
+              {colorName(p.colors[color]) && <div className="mt-1.5 text-[12px] text-mute">{colorName(p.colors[color])}</div>}
             </div>
           )}
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">

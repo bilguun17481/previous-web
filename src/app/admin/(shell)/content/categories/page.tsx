@@ -3,13 +3,14 @@ import { adm } from "@/lib/admin/i18n";
 import { repo, type CategoryRow } from "@/lib/admin/repo";
 import { Button, Card, Field, PageHeader, TextField, useAsync, useT, useToast } from "@/components/admin/ui";
 import { MediaPicker } from "@/components/admin/MediaPicker";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 
 export default function Categories() {
   const { t } = useT();
   const toast = useToast();
   const { data, setData } = useAsync(() => repo().categories.list());
   const set = (i: number, c: CategoryRow) => setData((data ?? []).map((x, k) => (k === i ? c : x)));
-  const save = async (c: CategoryRow) => { try { await repo().categories.save(c); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } };
+  const save = async (c: CategoryRow) => { try { await repo().categories.save(c); await refreshStorefront(["/", `/${c.slug}/`]); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } };
   return (
     <>
       <PageHeader title={t(adm.categories.title)} />

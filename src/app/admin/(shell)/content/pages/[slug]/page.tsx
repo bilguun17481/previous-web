@@ -6,6 +6,7 @@ import { repo } from "@/lib/admin/repo";
 import { Button, Card, Field, Input, PageHeader, Select, TextField, useT, useToast } from "@/components/admin/ui";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import { categories } from "@/data/catalog";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 import type { Page, Section } from "@/lib/types";
 
 const uid = () => Math.random().toString(36).slice(2, 8);
@@ -36,7 +37,7 @@ export default function PageBuilder() {
   const sections = page.sections;
   const setS = (i: number, s: Section) => setPage({ ...page, sections: sections.map((x, k) => (k === i ? s : x)) });
   const move = (i: number, d: -1 | 1) => { const a = [...sections]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setPage({ ...page, sections: a }); };
-  const save = async (status?: Page["status"]) => { setBusy(true); try { const p = { ...page, status: status ?? page.status }; await repo().pages.save(p); setPage(p); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } setBusy(false); };
+  const save = async (status?: Page["status"]) => { setBusy(true); try { const p = { ...page, status: status ?? page.status }; await repo().pages.save(p); await refreshStorefront([p.slug === "home" ? "/" : `/${p.slug}/`]); setPage(p); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } setBusy(false); };
   const href = page.slug === "home" ? "/" : `/${page.slug}/`;
 
   return (

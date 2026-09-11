@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT, useToast } from "@/components/admin/ui";
-import { brands, categories } from "@/data/catalog";
+import { brands, categories, colorHex, colorImage, colorName, type ProductColor } from "@/data/catalog";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
+import { SmartImg } from "@/components/SmartImg";
 import type { ShopProduct } from "@/lib/types";
 
 const blank: ShopProduct = { slug: "", brand: "CFMOTO", category: "ctyrkolky", name: "", price: 0, homologation: "—", art: "gear", short: { cs: "", en: "" }, description: { cs: "", en: "" }, specs: [], colors: ["#1f1f1f"], tags: [], status: "draft", stock: 0, sku: "", images: [], videos: [], featured: false };
@@ -23,6 +25,7 @@ export default function ProductEditor() {
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const drag = useRef<number | null>(null);
+  const colorDrag = useRef<number | null>(null);
   useEffect(() => { if (!isNew) repo().products.get(id).then((x) => setP(x ?? blank)); }, [id, isNew]);
   if (!p) return <p className="text-mute">{t(adm.common.loading)}</p>;
   const set = (patch: Partial<ShopProduct>) => setP({ ...p, ...patch });
@@ -32,12 +35,13 @@ export default function ProductEditor() {
     try {
       const slug = p.slug || slugify(`${p.brand} ${p.name}`);
       const newId = await repo().products.save({ ...p, slug, status: status ?? p.status });
+      await refreshStorefront(["/", `/${p.category}/`, `/produkt/${slug}/`]);
       toast(t(adm.common.saved));
       if (isNew) router.replace(`/admin/products/${newId}/`); else setP({ ...p, slug, status: status ?? p.status });
     } catch (e) { toast((e as Error).message, "err"); }
     setBusy(false);
   };
-  const remove = async () => { if (!confirm(t(adm.common.confirmDelete))) return; await repo().products.remove(p.id!); router.push("/admin/products/"); };
+  const remove = async () => { if (!confirm(t(adm.common.confirmDelete))) return; await repo().products.remove(p.id!); await refreshStorefront(["/", `/${p.category}/`]); router.push("/admin/products/"); };
   const uploadImages = async (files: FileList) => {
     const imgs = [...(p.images ?? [])];
     for (const f of Array.from(files)) { try { const m = await repo().media.upload(f, setPct); imgs.push({ url: m.url, alt: p.name }); } catch (e) { toast((e as Error).message, "err"); } }
@@ -79,7 +83,7 @@ export default function ProductEditor() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {(p.images ?? []).map((img, i) => (
                 <div key={img.url + i} draggable onDragStart={() => (drag.current = i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag.current !== null && drag.current !== i) reorder(drag.current, i); drag.current = null; }} className={`group relative aspect-square cursor-move overflow-hidden rounded-md border ${i === 0 ? "border-ink" : "border-hair"}`}>
-                  <img src={img.url} alt="" className="h-full w-full object-cover" />
+                  <SmartImg src={img.url} size="thumb" className="h-full w-full object-cover" />
                   <button type="button" onClick={() => set({ images: p.images!.filter((_, k) => k !== i) })} className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-full bg-paper text-[12px] shadow group-hover:flex">×</button>
                   {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-ink px-1.5 py-0.5 text-[10px] text-paper">Main</span>}
                 </div>
@@ -131,9 +135,30 @@ export default function ProductEditor() {
             <div className="flex flex-wrap gap-3">{tags.map((tag) => <label key={tag} className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="accent-ink" checked={p.tags?.includes(tag)} onChange={(e) => set({ tags: e.target.checked ? [...(p.tags ?? []), tag] : (p.tags ?? []).filter((x) => x !== tag) })} />{tag}</label>)}</div>
           </Card>
           <Card title={t(adm.products.colors)}>
-            <div className="flex flex-wrap items-center gap-2">
-              {p.colors.map((c, i) => <span key={i} className="group relative"><input type="color" value={c} onChange={(e) => set({ colors: p.colors.map((x, k) => (k === i ? e.target.value : x)) })} className="h-8 w-8 cursor-pointer rounded-full border border-hair" /><button type="button" onClick={() => set({ colors: p.colors.filter((_, k) => k !== i) })} className="absolute -right-1 -top-1 hidden h-4 w-4 rounded-full bg-ink text-[9px] text-paper group-hover:block">×</button></span>)}
-              <Button type="button" variant="secondary" onClick={() => set({ colors: [...p.colors, "#c9c9c9"] })}>+</Button>
+            <p className="mb-3 text-[12px] text-mute">{t(adm.products.colorHint)} {t(adm.products.colorOrder)}</p>
+            <div className="space-y-3">
+              {p.colors.map((c, i) => {
+                const upd = (patch: Partial<{ hex: string; name: string; image: string | undefined }>) => set({ colors: p.colors.map((x, k): ProductColor => (k === i ? { hex: colorHex(x), name: colorName(x), image: colorImage(x), ...patch } : x)) });
+                const moveColor = (d: -1 | 1) => { const a = [...p.colors]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; set({ colors: a }); };
+                return (
+                  <div key={i} draggable onDragStart={() => (colorDrag.current = i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (colorDrag.current !== null && colorDrag.current !== i) { const a = [...p.colors]; const [m] = a.splice(colorDrag.current, 1); a.splice(i, 0, m); set({ colors: a }); } colorDrag.current = null; }} className="rounded-md border border-hair p-2">
+                    <div className="flex items-center gap-2">
+                      <span className="cursor-move select-none text-mute" title={t(adm.products.dragHint)}>⋮⋮</span>
+                      <div className="flex flex-col"><button type="button" onClick={() => moveColor(-1)} disabled={i === 0} className="h-4 text-[10px] leading-none text-mute hover:text-ink disabled:opacity-30" aria-label={t(adm.pages.up)}>▲</button><button type="button" onClick={() => moveColor(1)} disabled={i === p.colors.length - 1} className="h-4 text-[10px] leading-none text-mute hover:text-ink disabled:opacity-30" aria-label={t(adm.pages.down)}>▼</button></div>
+                      <input type="color" value={colorHex(c)} onChange={(e) => upd({ hex: e.target.value })} className="h-8 w-8 shrink-0 cursor-pointer rounded-full border border-hair" />
+                      <Input value={colorName(c) ?? ""} placeholder={t(adm.products.colorName)} onChange={(e) => upd({ name: e.target.value })} />
+                      <Button type="button" variant="ghost" onClick={() => set({ colors: p.colors.filter((_, k) => k !== i) })}>×</Button>
+                    </div>
+                    {(p.images?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <button type="button" onClick={() => upd({ image: undefined })} className={`flex h-10 w-10 items-center justify-center rounded border text-[10px] ${!colorImage(c) ? "border-ink" : "border-hair text-mute"}`}>—</button>
+                        {p.images!.map((img) => <button type="button" key={img.url} onClick={() => upd({ image: img.url })} className={`h-10 w-10 overflow-hidden rounded border ${colorImage(c) === img.url ? "border-ink ring-1 ring-ink" : "border-hair"}`}><SmartImg src={img.url} size="thumb" className="h-full w-full object-cover" /></button>)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <Button type="button" variant="secondary" onClick={() => set({ colors: [...p.colors, { hex: "#c9c9c9" }] })}>+ {t(adm.common.add)}</Button>
             </div>
           </Card>
           <Card title={t(adm.products.seo)}>

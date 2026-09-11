@@ -5,7 +5,9 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Badge, Button, downloadCsv, Input, LinkButton, money, PageHeader, Select, Table, Td, useAsync, useT, useToast } from "@/components/admin/ui";
 import { primaryImage } from "@/lib/productImage";
+import { SmartImg } from "@/components/SmartImg";
 import { categories } from "@/data/catalog";
+import { refreshStorefront } from "@/lib/admin/revalidate";
 
 export default function Products() {
   const { t } = useT();
@@ -14,7 +16,7 @@ export default function Products() {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const { data, reload } = useAsync(() => repo().products.list());
   const list = useMemo(() => (data ?? []).filter((p) => (!cat || p.category === cat) && (!status || p.status === status) && (!q || `${p.name} ${p.brand} ${p.sku ?? ""}`.toLowerCase().includes(q.toLowerCase()))), [data, q, cat, status]);
-  const bulk = async (s: "active" | "archived") => { for (const id of sel) { const p = list.find((x) => x.id === id); if (p) await repo().products.save({ ...p, status: s }); } setSel(new Set()); toast(t(adm.common.saved)); reload(); };
+  const bulk = async (s: "active" | "archived") => { for (const id of sel) { const p = list.find((x) => x.id === id); if (p) await repo().products.save({ ...p, status: s }); } setSel(new Set()); await refreshStorefront(["/", "/ctyrkolky/", "/utv/", "/motocykly/", "/skutry/", "/prislusenstvi/"]); toast(t(adm.common.saved)); reload(); };
   const tone = (s?: string) => (s === "active" ? "green" : s === "draft" ? "amber" : "neutral");
   return (
     <>
@@ -29,7 +31,13 @@ export default function Products() {
         {list.map((p) => (
           <tr key={p.id} className="hover:bg-tile">
             <Td><input type="checkbox" className="accent-ink" checked={sel.has(p.id!)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(p.id!) : n.delete(p.id!); setSel(n); }} /></Td>
-            <Td>{primaryImage(p) ? <img src={primaryImage(p)} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-tile" />}</Td>
+            <Td>{primaryImage(p) ? (
+              <Link href={`/admin/products/${p.id}/`} className="group relative block">
+                <SmartImg src={primaryImage(p)} size="thumb" className="h-14 w-14 rounded object-cover" />
+                <span className="pointer-events-none absolute left-16 top-1/2 z-20 hidden -translate-y-1/2 rounded-lg border border-hair bg-paper p-1 shadow-xl group-hover:block"><SmartImg src={primaryImage(p)} size="card" className="h-64 w-64 rounded object-contain" /></span>
+                {(p.images?.length ?? 0) > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-1.5 text-[10px] font-semibold text-paper">{p.images!.length}</span>}
+              </Link>
+            ) : <Link href={`/admin/products/${p.id}/`} className="flex h-14 w-14 items-center justify-center rounded border border-dashed border-neutral-300 text-[10px] text-mute">—</Link>}</Td>
             <Td><Link href={`/admin/products/${p.id}/`} className="font-semibold hover:underline">{p.name}</Link><div className="text-[11px] text-mute">{[p.brand, p.sku, p.featured ? "★" : null].filter(Boolean).join(" · ")}</div></Td>
             <Td className="text-mute">{t(categories.find((c) => c.slug === p.category)?.label ?? { cs: p.category, en: p.category })}</Td>
             <Td><Badge tone={tone(p.status)}>{p.status === "active" ? t(adm.products.statusActive) : p.status === "draft" ? t(adm.products.statusDraft) : t(adm.products.statusArchived)}</Badge></Td>
