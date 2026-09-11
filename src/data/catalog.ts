@@ -108,6 +108,22 @@ export const products: Product[] = [
     colors: ["#1f1f1f", "#5a6b3d", "#c9c9c9"],
   },
   {
+    slug: "cfmoto-gladiator-c5-g4",
+    brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR C5 G4 EPS",
+    price: 160990, homologation: "T3b", art: "atv", cc: 499, power: "29 kW / 39 k", drive: "4x4",
+    tags: ["new"],
+    short: L("Silnější sourozenec C4: motor 499 ccm, posilovač řízení a uzávěrka předního diferenciálu. Verze s ABS za 170 990 Kč.", "The C4's bigger sibling: 499 cc engine, power steering and a lockable front differential. ABS version at 170 990 Kč."),
+    specs: [
+      { label: L("Motor", "Engine"), value: "499 ccm, 1 válec, SOHC, 4 ventily, kapalinou chlazený, EFI" },
+      { label: L("Vrtání × zdvih", "Bore × stroke"), value: "92 × 75 mm" },
+      { label: L("Převodovka", "Transmission"), value: "CVT, L/H/N/R/P" },
+      { label: L("Pohon", "Drivetrain"), value: "2WD / 4WD, uzávěrka předního diferenciálu" },
+      { label: L("Řízení", "Steering"), value: "Elektrický posilovač EPS" },
+      { label: L("Homologace", "Homologation"), value: "T3b" },
+    ],
+    colors: ["#1f1f1f", "#5a6b3d", "#c9c9c9"],
+  },
+  {
     slug: "cfmoto-gladiator-x450",
     brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR X450 EPS",
     price: 139990, homologation: "T3b", art: "atv", cc: 400, power: "19,5 kW / 26 k", drive: "4x4",
