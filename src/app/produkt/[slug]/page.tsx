@@ -4,7 +4,7 @@ import { getCategories, getProduct, getProducts } from "@/lib/data";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { ProductView } from "@/components/views/ProductView";
 
-export const revalidate = 60;
+export const revalidate = 30;
 // New products added in the admin render on demand. The GitHub Pages workflow flips this to false for the static export.
 export const dynamicParams = true;
 

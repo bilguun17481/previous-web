@@ -12,6 +12,7 @@ export function Photo({
   hint,
   fit = "contain",
   size = "full",
+  priority = false,
 }: {
   label: string;
   src?: string;
@@ -22,6 +23,8 @@ export function Photo({
   fit?: "contain" | "cover";
   /** Which stored variant to request; falls back to the original if the variant is missing. */
   size?: Size;
+  /** Load immediately instead of lazily (the main product image, heroes). */
+  priority?: boolean;
 }) {
   const [current, setCurrent] = useState(() => variant(src, size));
   useEffect(() => { setCurrent(variant(src, size)); }, [src, size]);
@@ -33,7 +36,7 @@ export function Photo({
     return (
       <div className={`relative overflow-hidden ${ratio} ${className}`} style={{ background: tone === "dark" ? "#111" : "#f4f4f2" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={current} alt={label} loading="lazy" decoding="async" onError={() => { if (current !== src) setCurrent(src); }} className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
+        <img src={current} alt={label} loading={priority ? "eager" : "lazy"} decoding="async" onError={() => { if (current !== src) setCurrent(src); }} className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
       </div>
     );
   }

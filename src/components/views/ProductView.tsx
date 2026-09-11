@@ -40,7 +40,7 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
           <div className="relative">
             {cur.kind === "video"
               ? <div className="aspect-square bg-ink sm:aspect-[4/3]"><Video video={cur.video} className="h-full w-full" /></div>
-              : <Photo label={p.name} src={cur.url} ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name}`} />}
+              : <Photo label={p.name} src={cur.url} priority ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name}`} />}
             {p.tags && (
               <div className="absolute left-4 top-4 flex gap-1.5">
                 {p.tags.map((tag) => <span key={tag} className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none ${tag === "sale" ? "bg-signal text-paper" : "bg-ink text-paper"}`}>{t(dict.catalog[tag])}</span>)}

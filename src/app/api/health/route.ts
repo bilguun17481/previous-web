@@ -34,6 +34,18 @@ export async function GET(req: Request) {
     const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/products?select=slug,status,images,updated_at&slug=eq.${encodeURIComponent(productSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
     const rows = (await r.json()) as { slug: string; status: string; images: { url: string }[]; updated_at: string }[];
     product = rows[0] ? { slug: rows[0].slug, status: rows[0].status, imageCount: rows[0].images?.length ?? 0, firstImage: rows[0].images?.[0]?.url ?? null, updated_at: rows[0].updated_at } : "not found";
+    // Fetch the public product page as a visitor would and see whether the first photo is in the HTML.
+    const site = (process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin).replace(/\/$/, "");
+    const first = rows[0]?.images?.[0]?.url;
+    if (first) {
+      try {
+        const pr = await fetch(`${site}/produkt/${productSlug}/`, { cache: "no-store", headers: { "user-agent": "health-check" } });
+        const html = await pr.text();
+        (product as Record<string, unknown>).page = { status: pr.status, cacheStatus: pr.headers.get("cache-status") ?? pr.headers.get("x-nextjs-cache") ?? pr.headers.get("netlify-cdn-cache-control") ?? null, age: pr.headers.get("age"), containsFirstImage: html.includes(first), containsAnyStorageImage: html.includes("/storage/v1/object/public/media/") };
+        const img = await fetch(first, { method: "HEAD", cache: "no-store" }).catch(() => null);
+        (product as Record<string, unknown>).firstImageReachable = img ? `${img.status} ${img.headers.get("content-type") ?? ""}` : "unreachable";
+      } catch (e) { (product as Record<string, unknown>).page = `error: ${(e as Error).message}`; }
+    }
   }
   return NextResponse.json({
     ok: problems.length === 0,
