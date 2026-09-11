@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "fetch-images": "node scripts/fetch-images.mjs"
+    "fetch-images": "node scripts/fetch-images.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.5",
@@ -19,12 +22,14 @@
     "stripe": "^22.6.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.6",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "playwright-core": "^1.52.0",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.131.0"
   }
 }

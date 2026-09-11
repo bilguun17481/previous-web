@@ -38,6 +38,17 @@ npm run build && npm start
 
 Gateways and carriers marked "manual" in Settings → Shipping have no public API without a contract; orders still record their tracking numbers and link to tracking pages.
 
+## Hosting on Cloudflare Workers
+
+The app also builds for Cloudflare Workers through OpenNext (`open-next.config.ts`, `wrangler.jsonc`). Storefront pages render fresh on every request there, so admin edits show without a redeploy.
+
+```bash
+npm run cf:build      # builds .open-next/
+npm run cf:preview    # runs the worker locally with wrangler
+```
+
+On Cloudflare: Workers & Pages → Create → Workers → Import a repository → pick this repo and branch. Build command `npm run cf:build`, deploy command `npx wrangler deploy`. Add the variables from `.env.example` under both Settings → Build → Variables and secrets (needed at build time for the `NEXT_PUBLIC_*` values) and Settings → Variables and Secrets (runtime). Then set `NEXT_PUBLIC_SITE_URL` and the Supabase Auth Site URL to the worker's address.
+
 ## Static mirror on GitHub Pages
 
 Every push runs `.github/workflows/pages.yml`, which strips the server-only parts (`src/app/api`, `src/app/admin`, `src/app/objednavka`, `src/proxy.ts`), builds with `STATIC_EXPORT=1` and a `/previous-web` base path, and publishes to the `gh-pages` branch:

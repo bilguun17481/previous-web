@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "motodvorak",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  // Public settings can live here; secrets (service role key, gateway keys) go in the dashboard
+  // under Settings → Variables and Secrets, or `wrangler secret put NAME`.
+  "vars": {}
+}
