@@ -24,7 +24,7 @@ jobs:
       - run: npm ci
       # The Pages mirror is a static storefront: strip the server-only parts before exporting.
       - run: rm -rf src/app/api src/app/admin src/app/objednavka src/proxy.ts
-      - run: sed -i 's/dynamicParams = true/dynamicParams = false/' 'src/app/produkt/[slug]/page.tsx'
+      - run: sed -i 's/dynamicParams = true/dynamicParams = false/' 'src/app/produkt/[slug]/page.tsx' 'src/app/[category]/page.tsx'
       - run: npm run build
         env:
           STATIC_EXPORT: "1"

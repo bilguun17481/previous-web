@@ -93,6 +93,21 @@ export const products: Product[] = [
     colors: ["#1f1f1f", "#d71920", "#2c6bd6"],
   },
   {
+    slug: "cfmoto-gladiator-c4-g4",
+    brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR C4 G4",
+    price: 150990, homologation: "T3b", art: "atv", cc: 409, power: "24,5 kW / 33 k", drive: "4x4",
+    tags: ["new"],
+    short: L("Praktická pracovní čtyřkolka s novým motorem 192: tišší chod, méně vibrací, uzávěrka předního diferenciálu.", "Practical utility ATV with the new 192 engine: quieter running, less vibration, lockable front differential."),
+    specs: [
+      { label: L("Motor", "Engine"), value: "409 ccm, 1 válec, DOHC, 4 ventily, kapalinou chlazený, EFI" },
+      { label: L("Vrtání × zdvih", "Bore × stroke"), value: "91 × 76,2 mm" },
+      { label: L("Převodovka", "Transmission"), value: "CVT, L/H/N/R/P" },
+      { label: L("Pohon", "Drivetrain"), value: "2WD / 4WD, uzávěrka předního diferenciálu" },
+      { label: L("Homologace", "Homologation"), value: "T3b" },
+    ],
+    colors: ["#1f1f1f", "#5a6b3d", "#c9c9c9"],
+  },
+  {
     slug: "cfmoto-gladiator-x450",
     brand: "CFMOTO", category: "ctyrkolky", name: "GLADIATOR X450 EPS",
     price: 139990, homologation: "T3b", art: "atv", cc: 400, power: "19,5 kW / 26 k", drive: "4x4",
