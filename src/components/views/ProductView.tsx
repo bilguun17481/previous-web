@@ -53,7 +53,7 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
                 <button key={i} onClick={() => setActive(i)} aria-pressed={active === i} className={`relative border ${active === i ? "border-ink" : "border-transparent hover:border-hair"}`}>
                   {s.kind === "video"
                     ? <div className="flex aspect-[4/3] items-center justify-center bg-ink text-paper"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></div>
-                    : <Photo label={`${p.name} ${s.label}`} src={s.url} ratio="aspect-[4/3]" hint={s.label} />}
+                    : <Photo label={`${p.name} ${s.label}`} src={s.url} size="thumb" ratio="aspect-[4/3]" hint={s.label} />}
                 </button>
               ))}
             </div>

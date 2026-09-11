@@ -5,6 +5,7 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Badge, Button, downloadCsv, Input, LinkButton, money, PageHeader, Select, Table, Td, useAsync, useT, useToast } from "@/components/admin/ui";
 import { primaryImage } from "@/lib/productImage";
+import { variant } from "@/lib/mediaVariants";
 import { categories } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 
@@ -30,7 +31,7 @@ export default function Products() {
         {list.map((p) => (
           <tr key={p.id} className="hover:bg-tile">
             <Td><input type="checkbox" className="accent-ink" checked={sel.has(p.id!)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(p.id!) : n.delete(p.id!); setSel(n); }} /></Td>
-            <Td>{primaryImage(p) ? <img src={primaryImage(p)} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-tile" />}</Td>
+            <Td>{primaryImage(p) ? <img src={variant(primaryImage(p), "thumb")} alt="" className="h-10 w-10 rounded object-cover" loading="lazy" /> : <div className="h-10 w-10 rounded bg-tile" />}</Td>
             <Td><Link href={`/admin/products/${p.id}/`} className="font-semibold hover:underline">{p.name}</Link><div className="text-[11px] text-mute">{[p.brand, p.sku, p.featured ? "★" : null].filter(Boolean).join(" · ")}</div></Td>
             <Td className="text-mute">{t(categories.find((c) => c.slug === p.category)?.label ?? { cs: p.category, en: p.category })}</Td>
             <Td><Badge tone={tone(p.status)}>{p.status === "active" ? t(adm.products.statusActive) : p.status === "draft" ? t(adm.products.statusDraft) : t(adm.products.statusArchived)}</Badge></Td>

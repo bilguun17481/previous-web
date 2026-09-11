@@ -15,7 +15,7 @@ export function ProductCard({ p }: { p: ShopProduct }) {
   return (
     <div className="group flex flex-col bg-paper">
       <Link href={`/produkt/${p.slug}/`} className="relative block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink">
-        <Photo label={p.name} src={img} ratio="aspect-square" className="transition-opacity group-hover:opacity-90" />
+        <Photo label={p.name} src={img} size="card" ratio="aspect-square" className="transition-opacity group-hover:opacity-90" />
         {Boolean(p.tags?.length || out) && (
           <div className="absolute left-3 top-3 flex gap-1.5">
             {p.tags?.map((tag) => (

@@ -25,7 +25,7 @@ export function CartView() {
           <ul className="border-t hairline">
             {items.map((i) => (
               <li key={i.slug} className="grid grid-cols-[88px_1fr_auto] items-center gap-5 border-b hairline py-5 sm:grid-cols-[120px_1fr_auto_auto]">
-                <Link href={`/produkt/${i.slug}/`}><Photo label={i.name} src={i.image} ratio="aspect-square" hint="" /></Link>
+                <Link href={`/produkt/${i.slug}/`}><Photo label={i.name} src={i.image} size="thumb" ratio="aspect-square" hint="" /></Link>
                 <div>
                   <div className="eyebrow">{i.brand}</div>
                   <Link href={`/produkt/${i.slug}/`} className="mt-1 block text-[16px] font-semibold leading-tight hover:underline underline-offset-4">{i.name}</Link>

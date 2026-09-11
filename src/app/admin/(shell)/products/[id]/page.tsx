@@ -7,6 +7,7 @@ import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT
 import { brands, categories } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
+import { variant } from "@/lib/mediaVariants";
 import type { ShopProduct } from "@/lib/types";
 
 const blank: ShopProduct = { slug: "", brand: "CFMOTO", category: "ctyrkolky", name: "", price: 0, homologation: "—", art: "gear", short: { cs: "", en: "" }, description: { cs: "", en: "" }, specs: [], colors: ["#1f1f1f"], tags: [], status: "draft", stock: 0, sku: "", images: [], videos: [], featured: false };
@@ -81,7 +82,7 @@ export default function ProductEditor() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {(p.images ?? []).map((img, i) => (
                 <div key={img.url + i} draggable onDragStart={() => (drag.current = i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag.current !== null && drag.current !== i) reorder(drag.current, i); drag.current = null; }} className={`group relative aspect-square cursor-move overflow-hidden rounded-md border ${i === 0 ? "border-ink" : "border-hair"}`}>
-                  <img src={img.url} alt="" className="h-full w-full object-cover" />
+                  <img src={variant(img.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" onError={(e) => { if (e.currentTarget.src !== img.url) e.currentTarget.src = img.url; }} />
                   <button type="button" onClick={() => set({ images: p.images!.filter((_, k) => k !== i) })} className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-full bg-paper text-[12px] shadow group-hover:flex">×</button>
                   {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-ink px-1.5 py-0.5 text-[10px] text-paper">Main</span>}
                 </div>

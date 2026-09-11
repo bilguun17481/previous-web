@@ -1,5 +1,6 @@
 "use client";
 import type { MediaRef, ProductVideo } from "@/lib/types";
+import { variant, type Size } from "@/lib/mediaVariants";
 
 const ytId = (u: string) => u.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{6,})/)?.[1];
 const vimeoId = (u: string) => u.match(/vimeo\.com\/(?:video\/)?(\d+)/)?.[1];
@@ -23,8 +24,8 @@ export function Video({ video, className = "", autoplay = false, muted = autopla
 }
 
 /** Full-bleed background media for hero and banner sections. */
-export function BackgroundMedia({ media, fallback }: { media?: MediaRef; fallback: React.ReactNode }) {
+export function BackgroundMedia({ media, fallback, size = "full" }: { media?: MediaRef; fallback: React.ReactNode; size?: Size }) {
   if (!media?.url) return <>{fallback}</>;
-  if (media.kind === "image") return <img src={media.url} alt={media.alt ?? ""} className="absolute inset-0 h-full w-full object-cover" />;
+  if (media.kind === "image") return <img src={variant(media.url, size)} alt={media.alt ?? ""} loading={size === "full" ? "eager" : "lazy"} decoding="async" className="absolute inset-0 h-full w-full object-cover" />;
   return <Video video={media} autoplay className="absolute inset-0 h-full w-full object-cover" poster={media.poster} />;
 }

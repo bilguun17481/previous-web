@@ -5,6 +5,7 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Badge, Button, Card, dateTime, Field, Input, money, PageHeader, Textarea, useAsync, useT, useToast } from "@/components/admin/ui";
 import type { Order } from "@/lib/types";
+import { variant } from "@/lib/mediaVariants";
 
 const trackingUrls: Record<string, (n: string) => string> = {
   packeta: (n) => `https://tracking.packeta.com/cs/?id=${n}`, ppl: (n) => `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${n}`, dpd: (n) => `https://tracking.dpd.de/status/cs_CZ/parcel/${n}`,
@@ -58,7 +59,7 @@ export default function OrderDetail() {
         <div className="space-y-4">
           <Card title={t(adm.orders.items)} actions={<div className="flex gap-2"><Badge tone={tone(o.payment_status)}>{t(adm.orders.ps[o.payment_status])}</Badge><Badge tone={tone(o.status)}>{t(adm.orders.st[o.status])}</Badge></div>}>
             <ul className="divide-y divide-hair text-[13px]">
-              {o.items.map((i) => <li key={i.slug} className="flex items-center gap-3 py-2.5">{i.image ? <img src={i.image} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-tile" />}<div className="flex-1"><div className="font-medium">{i.name}</div><div className="text-[11px] text-mute">{i.brand} · {i.slug}</div></div><div className="text-mute">{i.qty} × {money(i.price)}</div><div className="w-24 text-right font-semibold">{money(i.price * i.qty)}</div></li>)}
+              {o.items.map((i) => <li key={i.slug} className="flex items-center gap-3 py-2.5">{i.image ? <img src={variant(i.image, "thumb")} alt="" className="h-10 w-10 rounded object-cover" /> : <div className="h-10 w-10 rounded bg-tile" />}<div className="flex-1"><div className="font-medium">{i.name}</div><div className="text-[11px] text-mute">{i.brand} · {i.slug}</div></div><div className="text-mute">{i.qty} × {money(i.price)}</div><div className="w-24 text-right font-semibold">{money(i.price * i.qty)}</div></li>)}
             </ul>
             <dl className="mt-3 space-y-1 border-t border-hair pt-3 text-[13px]">
               <div className="flex justify-between"><dt className="text-mute">Mezisoučet</dt><dd>{money(o.subtotal)}</dd></div>

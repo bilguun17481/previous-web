@@ -7,8 +7,25 @@ import { Video } from "@/components/Media";
 import { bestMatch, fileLabel, folderOf } from "@/lib/admin/match";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import type { MediaItem, ShopProduct } from "@/lib/types";
+import { variant } from "@/lib/mediaVariants";
+import { memo } from "react";
 
 type Picked = { file: File; folder: string };
+
+/** One tile. Memoised so that selecting a photo repaints only that tile, not the whole grid. */
+const MediaCard = memo(function MediaCard({ m, on, used, toggle, copy, labels, size }: { m: MediaItem; on: boolean; used?: string[]; toggle: (id: string) => void; copy: () => void; labels: { usedBy: string; unused: string; copy: string }; size: string }) {
+  return (
+    <div onClick={() => toggle(m.id)} className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-paper ${on ? "border-ink ring-2 ring-ink" : "border-hair hover:border-neutral-400"}`}>
+      <input type="checkbox" checked={on} onChange={() => toggle(m.id)} onClick={(e) => e.stopPropagation()} className="absolute left-2 top-2 z-10 h-4 w-4 accent-ink" />
+      <div className="aspect-square bg-tile">{m.kind === "image" ? <img src={variant(m.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e) => { if (e.currentTarget.src !== m.url) e.currentTarget.src = m.url; }} /> : <Video video={{ kind: "upload", url: m.url }} className="h-full w-full object-cover" />}</div>
+      <div className="p-2 text-[11px]">
+        <div className="truncate font-medium">{m.path.split("/").pop()}</div>
+        <div className="truncate text-mute">{used ? `${labels.usedBy}: ${used.join(", ")}` : `${labels.unused} · ${size}`}</div>
+        <div className="mt-1 hidden gap-1 group-hover:flex"><Button variant="secondary" className="!h-6 !px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); copy(); }}>{labels.copy}</Button></div>
+      </div>
+    </div>
+  );
+});
 const STORE_PATHS = ["/", "/ctyrkolky/", "/utv/", "/motocykly/", "/skutry/", "/prislusenstvi/"];
 
 export default function Media() {
@@ -124,6 +141,17 @@ export default function Media() {
     setBusy(true); for (const m of selected) await repo().media.remove(m); setSel(new Set()); setBusy(false); reload();
   };
 
+  /* ── thumbnails for files uploaded before variants existed ── */
+  const backfill = async () => {
+    setBusy(true);
+    const imgs = media.filter((m) => m.kind === "image"); let made = 0, skipped = 0, failed = 0;
+    for (let i = 0; i < imgs.length; i++) {
+      setProgress(`${t(adm.media.thumbs)} ${i + 1} / ${imgs.length}`);
+      try { if (await repo().media.hasVariants(imgs[i])) { skipped++; continue; } (await repo().media.makeVariants(imgs[i])) ? made++ : failed++; } catch { failed++; }
+    }
+    setProgress(null); setBusy(false); toast(`${made} ${t(adm.media.thumbsMade)} · ${skipped} ${t(adm.media.thumbsHad)}${failed ? ` · ${failed} ${t(adm.media.failed)}` : ""}`);
+  };
+
   /* ── assign by name (review table) ── */
   const startReview = () => {
     const rows = (folder === null ? media : list).filter((m) => m.kind === "image").map((item) => {
@@ -165,7 +193,7 @@ export default function Media() {
 
   return (
     <>
-      <PageHeader title={t(adm.media.title)} sub={`${media.length}`} actions={<><Button variant="secondary" onClick={() => setNewFolder("")}>{t(adm.media.newFolder)}</Button><Button variant="secondary" onClick={startReview} disabled={!media.length}>{t(adm.media.assignByName)}</Button></>} />
+      <PageHeader title={t(adm.media.title)} sub={`${media.length}`} actions={<><Button variant="secondary" onClick={() => setNewFolder("")}>{t(adm.media.newFolder)}</Button><Button variant="secondary" onClick={startReview} disabled={!media.length}>{t(adm.media.assignByName)}</Button><Button variant="secondary" onClick={backfill} disabled={busy || !media.length}>{t(adm.media.thumbs)}</Button></>} />
 
       {review && (
         <Card className="mb-6" title={t(adm.media.assignTitle)} actions={<div className="flex gap-2"><Button variant="secondary" onClick={() => setReview(null)}>{t(adm.common.cancel)}</Button><Button disabled={busy} onClick={applyReview}>{t(adm.media.apply)} ({review.filter((r) => r.slug).length})</Button></div>}>
@@ -173,7 +201,7 @@ export default function Media() {
           <Table head={["", t(adm.media.file), t(adm.products.title), ""]}>
             {review.map((r, i) => (
               <tr key={r.item.id} className={r.slug ? "" : "bg-amber-50/50"}>
-                <Td><img src={r.item.url} alt="" className="h-10 w-10 rounded object-cover" /></Td>
+                <Td><img src={variant(r.item.url, "thumb")} alt="" className="h-10 w-10 rounded object-cover" loading="lazy" /></Td>
                 <Td className="font-mono text-[12px]">{folderOf(r.item.path) && <span className="text-mute">{folderOf(r.item.path)}/</span>}{r.item.path.split("/").pop()}</Td>
                 <Td><Select value={r.slug} onChange={(e) => setReview(review.map((x, k) => (k === i ? { ...x, slug: e.target.value, sure: true } : x)))} className="max-w-md"><option value="">— {t(adm.media.skip)} —</option>{products.map((p) => <option key={p.slug} value={p.slug}>{p.brand} · {p.name}</option>)}</Select></Td>
                 <Td className="text-[11px] text-mute">{r.slug ? (r.sure ? "" : t(adm.media.unsure)) : t(adm.media.noMatch)}</Td>
@@ -229,20 +257,7 @@ export default function Media() {
             <section key={g || "_"} className="mt-6">
               {folder === null && g && <h2 className="mb-3 text-[13px] font-semibold">{g} <span className="font-normal text-mute">· {items.length}</span></h2>}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-5">
-                {items.map((m) => {
-                  const on = sel.has(m.id); const used = usedBy.get(m.url);
-                  return (
-                    <div key={m.id} onClick={() => toggle(m.id)} className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-paper ${on ? "border-ink ring-2 ring-ink" : "border-hair hover:border-neutral-400"}`}>
-                      <input type="checkbox" checked={on} onChange={() => toggle(m.id)} onClick={(e) => e.stopPropagation()} className="absolute left-2 top-2 z-10 h-4 w-4 accent-ink" />
-                      <div className="aspect-square bg-tile">{m.kind === "image" ? <img src={m.url} alt="" className="h-full w-full object-cover" loading="lazy" /> : <Video video={{ kind: "upload", url: m.url }} className="h-full w-full object-cover" />}</div>
-                      <div className="p-2 text-[11px]">
-                        <div className="truncate font-medium">{m.path.split("/").pop()}</div>
-                        <div className="truncate text-mute">{used ? `${t(adm.media.usedBy)}: ${used.join(", ")}` : `${t(adm.media.unused)} · ${fmt(m.size)}`}</div>
-                        <div className="mt-1 hidden gap-1 group-hover:flex"><Button variant="secondary" className="!h-6 !px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(m.url); toast(t(adm.media.copied)); }}>{t(adm.media.copy)}</Button></div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {items.map((m) => <MediaCard key={m.id} m={m} on={sel.has(m.id)} used={usedBy.get(m.url)} toggle={toggle} copy={() => { navigator.clipboard.writeText(m.url); toast(t(adm.media.copied)); }} labels={{ usedBy: t(adm.media.usedBy), unused: t(adm.media.unused), copy: t(adm.media.copy) }} size={fmt(m.size)} />)}
               </div>
             </section>
           ))}

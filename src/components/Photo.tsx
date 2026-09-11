@@ -1,4 +1,6 @@
 "use client";
+import { useEffect, useState } from "react";
+import { variant, type Size } from "@/lib/mediaVariants";
 /* Product image frame. Renders the real photograph when `src` is given;
    otherwise a studio-backdrop placeholder sized like the final image. */
 export function Photo({
@@ -9,6 +11,7 @@ export function Photo({
   ratio = "aspect-[4/3]",
   hint,
   fit = "contain",
+  size = "full",
 }: {
   label: string;
   src?: string;
@@ -17,7 +20,11 @@ export function Photo({
   ratio?: string;
   hint?: string;
   fit?: "contain" | "cover";
+  /** Which stored variant to request; falls back to the original if the variant is missing. */
+  size?: Size;
 }) {
+  const [current, setCurrent] = useState(() => variant(src, size));
+  useEffect(() => { setCurrent(variant(src, size)); }, [src, size]);
   const bg =
     tone === "dark"
       ? "radial-gradient(120% 80% at 50% 30%, #3a3a3a 0%, #1a1a1a 55%, #0b0b0b 100%)"
@@ -26,7 +33,7 @@ export function Photo({
     return (
       <div className={`relative overflow-hidden ${ratio} ${className}`} style={{ background: tone === "dark" ? "#111" : "#f4f4f2" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={label} loading="lazy" className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
+        <img src={current} alt={label} loading="lazy" decoding="async" onError={() => { if (current !== src) setCurrent(src); }} className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
       </div>
     );
   }
