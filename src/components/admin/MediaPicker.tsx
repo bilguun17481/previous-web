@@ -39,7 +39,7 @@ export function MediaPicker({ value, onChange, accept = "image/*,video/*", allow
         <div className="mt-2 grid max-h-64 grid-cols-4 gap-2 overflow-auto rounded-md border border-hair p-2 sm:grid-cols-6">
           {(data ?? []).map((m) => (
             <button type="button" key={m.id} onClick={() => { onChange({ kind: m.kind === "video" ? "video" : "image", url: m.url }); setOpen(false); }} className="aspect-square overflow-hidden rounded border border-hair hover:border-ink">
-              {m.kind === "image" ? <img src={variant(m.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center bg-ink text-[10px] uppercase text-paper">video</div>}
+              {m.kind === "image" ? <img src={variant(m.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" onError={(e) => { if (e.currentTarget.src !== m.url) e.currentTarget.src = m.url; }} /> : <div className="flex h-full items-center justify-center bg-ink text-[10px] uppercase text-paper">video</div>}
             </button>
           ))}
           {!data?.length && <div className="col-span-full p-4 text-center text-[12px] text-mute">{t(adm.common.empty)}</div>}
