@@ -41,7 +41,34 @@ export default function Media() {
     toast(`${t(adm.common.saved)} · ${n}`); setApplying(false); setAssign(null);
   };
   const input = useRef<HTMLInputElement>(null);
-  const upload = async (files: FileList | null) => { if (!files) return; for (const f of Array.from(files)) { try { await repo().media.upload(f, setPct); } catch (e) { toast((e as Error).message, "err"); } } setPct(null); reload(); };
+  const folderInput = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const isMedia = (f: File) => /^(image|video)\//.test(f.type) || /\.(jpe?g|png|webp|gif|avif|mp4|webm|mov)$/i.test(f.name);
+  const upload = async (files: File[]) => {
+    const list = files.filter(isMedia);
+    if (!list.length) { toast(t(adm.media.nothing), "err"); return; }
+    let done = 0, failed = 0;
+    for (const f of list) {
+      setProgress(`${done + 1} / ${list.length} · ${f.name}`);
+      try { await repo().media.upload(f, setPct); done++; } catch (e) { failed++; toast(`${f.name}: ${(e as Error).message}`, "err"); }
+    }
+    setPct(null); setProgress(null); toast(`${done} ${t(adm.media.uploaded)}${failed ? ` · ${failed} ${t(adm.media.failed)}` : ""}`); reload();
+  };
+  /** Expand dropped items, including folders and subfolders, into files. */
+  const collect = async (dt: DataTransfer): Promise<File[]> => {
+    const entries = Array.from(dt.items ?? []).map((i) => (i as DataTransferItem & { webkitGetAsEntry?: () => FileSystemEntry | null }).webkitGetAsEntry?.()).filter(Boolean) as FileSystemEntry[];
+    if (!entries.length) return Array.from(dt.files ?? []);
+    const out: File[] = [];
+    const walk = async (e: FileSystemEntry): Promise<void> => {
+      if (e.isFile) { await new Promise<void>((res) => (e as FileSystemFileEntry).file((f) => { out.push(f); res(); }, () => res())); return; }
+      if (e.isDirectory) {
+        const reader = (e as FileSystemDirectoryEntry).createReader();
+        for (;;) { const batch = await new Promise<FileSystemEntry[]>((res) => reader.readEntries(res, () => res([]))); if (!batch.length) break; for (const c of batch) await walk(c); }
+      }
+    };
+    for (const e of entries) await walk(e);
+    return out;
+  };
   const list = (data ?? []).filter((m) => !filter || m.kind === filter);
   const fmt = (n: number | null) => (n == null ? "" : n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} kB`);
   return (
@@ -62,11 +89,13 @@ export default function Media() {
           </Table>
         </Card>
       )}
-      <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={(e) => { e.preventDefault(); setOver(false); upload(e.dataTransfer.files); }} onClick={() => input.current?.click()}
+      <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={async (e) => { e.preventDefault(); setOver(false); upload(await collect(e.dataTransfer)); }} onClick={() => input.current?.click()}
         className={`mb-6 flex h-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed text-[13px] ${over ? "border-ink bg-tile" : "border-neutral-300 text-mute hover:border-ink"}`}>
-        {pct !== null ? `${pct}%` : t(adm.media.drop)}
-        <input ref={input} type="file" multiple accept="image/*,video/*" className="hidden" onChange={(e) => upload(e.target.files)} />
+        {progress ?? t(adm.media.drop)}
+        <input ref={input} type="file" multiple accept="image/*,video/*" className="hidden" onChange={(e) => upload(Array.from(e.target.files ?? []))} />
+        <input ref={folderInput} type="file" multiple className="hidden" {...({ webkitdirectory: "" } as Record<string, string>)} onChange={(e) => upload(Array.from(e.target.files ?? []))} />
       </div>
+      <div className="-mt-4 mb-6 flex gap-2"><Button variant="secondary" onClick={() => input.current?.click()}>{t(adm.media.chooseFiles)}</Button><Button variant="secondary" onClick={() => folderInput.current?.click()}>{t(adm.media.chooseFolder)}</Button></div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">
         {list.map((m) => (
           <div key={m.id} className="group overflow-hidden rounded-lg border border-hair bg-paper">
