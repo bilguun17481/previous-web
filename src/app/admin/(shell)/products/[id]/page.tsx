@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT, useToast } from "@/components/admin/ui";
-import { brands, categories } from "@/data/catalog";
+import { brands, categories, colorHex, colorImage, colorName, type ProductColor } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
 import { variant } from "@/lib/mediaVariants";
@@ -134,9 +134,27 @@ export default function ProductEditor() {
             <div className="flex flex-wrap gap-3">{tags.map((tag) => <label key={tag} className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="accent-ink" checked={p.tags?.includes(tag)} onChange={(e) => set({ tags: e.target.checked ? [...(p.tags ?? []), tag] : (p.tags ?? []).filter((x) => x !== tag) })} />{tag}</label>)}</div>
           </Card>
           <Card title={t(adm.products.colors)}>
-            <div className="flex flex-wrap items-center gap-2">
-              {p.colors.map((c, i) => <span key={i} className="group relative"><input type="color" value={c} onChange={(e) => set({ colors: p.colors.map((x, k) => (k === i ? e.target.value : x)) })} className="h-8 w-8 cursor-pointer rounded-full border border-hair" /><button type="button" onClick={() => set({ colors: p.colors.filter((_, k) => k !== i) })} className="absolute -right-1 -top-1 hidden h-4 w-4 rounded-full bg-ink text-[9px] text-paper group-hover:block">×</button></span>)}
-              <Button type="button" variant="secondary" onClick={() => set({ colors: [...p.colors, "#c9c9c9"] })}>+</Button>
+            <p className="mb-3 text-[12px] text-mute">{t(adm.products.colorHint)}</p>
+            <div className="space-y-3">
+              {p.colors.map((c, i) => {
+                const upd = (patch: Partial<{ hex: string; name: string; image: string | undefined }>) => set({ colors: p.colors.map((x, k): ProductColor => (k === i ? { hex: colorHex(x), name: colorName(x), image: colorImage(x), ...patch } : x)) });
+                return (
+                  <div key={i} className="rounded-md border border-hair p-2">
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={colorHex(c)} onChange={(e) => upd({ hex: e.target.value })} className="h-8 w-8 shrink-0 cursor-pointer rounded-full border border-hair" />
+                      <Input value={colorName(c) ?? ""} placeholder={t(adm.products.colorName)} onChange={(e) => upd({ name: e.target.value })} />
+                      <Button type="button" variant="ghost" onClick={() => set({ colors: p.colors.filter((_, k) => k !== i) })}>×</Button>
+                    </div>
+                    {(p.images?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <button type="button" onClick={() => upd({ image: undefined })} className={`flex h-10 w-10 items-center justify-center rounded border text-[10px] ${!colorImage(c) ? "border-ink" : "border-hair text-mute"}`}>—</button>
+                        {p.images!.map((img) => <button type="button" key={img.url} onClick={() => upd({ image: img.url })} className={`h-10 w-10 overflow-hidden rounded border ${colorImage(c) === img.url ? "border-ink ring-1 ring-ink" : "border-hair"}`}><img src={variant(img.url, "thumb")} alt="" className="h-full w-full object-cover" /></button>)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <Button type="button" variant="secondary" onClick={() => set({ colors: [...p.colors, { hex: "#c9c9c9" }] })}>+ {t(adm.common.add)}</Button>
             </div>
           </Card>
           <Card title={t(adm.products.seo)}>

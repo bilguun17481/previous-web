@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
 import { Video } from "@/components/Media";
 import { ProductCard } from "@/components/ProductCard";
-import { formatKc } from "@/data/catalog";
+import { colorHex, colorImage, colorName, formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
 import { imageFor } from "@/lib/images";
@@ -93,8 +93,12 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
             <div className="mt-6">
               <div className="text-[12px] font-semibold uppercase tracking-[0.14em]">{t(d.colors)}</div>
               <div className="mt-2 flex gap-2">
-                {p.colors.map((c, i) => <button key={c} onClick={() => setColor(i)} aria-label={`Color ${i + 1}`} aria-pressed={color === i} className={`h-7 w-7 rounded-full border ${color === i ? "border-ink ring-1 ring-ink ring-offset-2" : "border-hair"}`} style={{ background: c }} />)}
+                {p.colors.map((c, i) => {
+                  const img = colorImage(c); const idx = img ? slides.findIndex((s) => s.kind === "image" && s.url === img) : -1;
+                  return <button key={i} onClick={() => { setColor(i); if (idx >= 0) setActive(idx); }} title={colorName(c)} aria-label={colorName(c) ?? `Color ${i + 1}`} aria-pressed={color === i} className={`h-7 w-7 rounded-full border ${color === i ? "border-ink ring-1 ring-ink ring-offset-2" : "border-hair"}`} style={{ background: colorHex(c) }} />;
+                })}
               </div>
+              {colorName(p.colors[color]) && <div className="mt-1.5 text-[12px] text-mute">{colorName(p.colors[color])}</div>}
             </div>
           )}
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">

@@ -1,6 +1,11 @@
 export type Category = "ctyrkolky" | "utv" | "motocykly" | "skutry" | "prislusenstvi";
 export type Homologation = "T3b" | "L7e" | "L3e" | "L1e" | "—";
-export type Art = "atv" | "utv" | "moto" | "scooter" | "gear"; // legacy placeholder hint, unused by the photo tiles
+export type Art = "atv" | "utv" | "moto" | "scooter" | "gear";
+/** A colour option: a plain hex string, or an object that can also name the colour and point at the photo it opens. */
+export type ProductColor = string | { hex: string; name?: string; image?: string };
+export const colorHex = (c: ProductColor) => (typeof c === "string" ? c : c.hex);
+export const colorName = (c: ProductColor) => (typeof c === "string" ? undefined : c.name);
+export const colorImage = (c: ProductColor) => (typeof c === "string" ? undefined : c.image); // legacy placeholder hint, unused by the photo tiles
 
 export interface Product {
   slug: string;
@@ -17,7 +22,7 @@ export interface Product {
   drive?: string;       // "4x4" | "2WD"
   short: { cs: string; en: string };
   specs: { label: { cs: string; en: string }; value: string }[];
-  colors: string[];     // hex swatches
+  colors: ProductColor[]; // swatches, optionally with a name and a landing photo
 }
 
 export const categories: {
