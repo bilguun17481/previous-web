@@ -18,9 +18,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   ]);
   const settings: SiteSettings = { store, announcement, theme };
   const vars = [theme?.accent && `--color-ink:${theme.accent}`, theme?.signal && `--color-signal:${theme.signal}`, theme?.font && theme.font !== "Inter" && `--font-sans:"${theme.font}",Inter Variable,sans-serif`].filter(Boolean).join(";");
+  // Public runtime settings for the browser, so the client works even when build-time variables were absent.
+  const publicEnv = JSON.stringify({ url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "", siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "" });
   return (
     <html lang="cs">
-      {vars ? <head><style>{`:root{${vars}}`}</style></head> : null}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `window.__ENV__=${publicEnv}` }} />
+        {vars ? <style>{`:root{${vars}}`}</style> : null}
+      </head>
       <body>
         <LangProvider>
           <SettingsProvider value={settings}>
