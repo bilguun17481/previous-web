@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { categories as localCategories, type Category } from "@/data/catalog";
-import { getCategories, getPage, getProducts } from "@/lib/data";
+import { getCategories, getPage, getPageAsViewer, getProducts } from "@/lib/data";
 import { renderSections } from "@/lib/renderPage";
 import { CategoryView } from "@/components/views/CategoryView";
 
@@ -29,7 +29,7 @@ export default async function Page({ params }: { params: Promise<{ category: str
     const products = await getProducts({ category: category as Category });
     return <CategoryView category={cat} products={products} />;
   }
-  const page = await getPage(category);
+  const page = (await getPage(category)) ?? (await getPageAsViewer(category)); // drafts are visible to signed-in staff only
   if (!page) notFound();
   return renderSections(page.sections);
 }

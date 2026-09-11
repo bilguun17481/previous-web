@@ -51,6 +51,15 @@ export async function getPage(slug: string): Promise<Page | null> {
   return (data as Page | null) ?? null;
 }
 
+/** Same as getPage but as the signed-in viewer, so staff can preview drafts. */
+export async function getPageAsViewer(slug: string): Promise<Page | null> {
+  if (!supabaseConfigured) return null;
+  const { supabaseServer } = await import("@/lib/supabase/server");
+  const sb = await supabaseServer();
+  const { data } = await sb.from("pages").select("*").eq("slug", slug).maybeSingle();
+  return (data as Page | null) ?? null;
+}
+
 export async function getSetting<T = Record<string, unknown>>(key: string): Promise<T | null> {
   if (!supabaseConfigured) return null;
   const { data } = await supabasePublic().from("settings").select("value").eq("key", key).maybeSingle();
