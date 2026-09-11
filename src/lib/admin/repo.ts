@@ -19,7 +19,16 @@ export interface Repo {
   customers: { list(): Promise<Customer[]> };
   discounts: { list(): Promise<Discount[]>; save(d: Partial<Discount>): Promise<void>; remove(id: string): Promise<void> };
   pages: { list(): Promise<Page[]>; get(slug: string): Promise<Page | null>; save(p: Page): Promise<void>; remove(slug: string): Promise<void> };
-  media: { list(): Promise<MediaItem[]>; upload(file: File, onProgress?: (pct: number) => void, folder?: string): Promise<MediaItem>; remove(item: MediaItem): Promise<void> };
+  media: {
+    list(): Promise<MediaItem[]>;
+    upload(file: File, onProgress?: (pct: number) => void, folder?: string): Promise<MediaItem>;
+    remove(item: MediaItem): Promise<void>;
+    /** Move one file into another folder ("" = top level). Returns the updated row with its new URL. */
+    move(item: MediaItem, folder: string): Promise<MediaItem>;
+    /** Folders that exist even while empty. Folders with files are derived from paths. */
+    listFolders(): Promise<string[]>;
+    saveFolders(folders: string[]): Promise<void>;
+  };
   settings: { get<T>(key: string): Promise<T | null>; set(key: string, value: unknown): Promise<void> };
   shipping: { list(): Promise<ShippingMethod[]>; save(m: ShippingMethod): Promise<void>; remove(id: string): Promise<void> };
   payments: { list(): Promise<PaymentMethod[]>; save(m: PaymentMethod): Promise<void> };
@@ -95,6 +104,21 @@ function supabaseRepo(): Repo {
         return data as MediaItem;
       },
       async remove(item) { await sb.storage.from("media").remove([item.path]); const { error } = await sb.from("media").delete().eq("id", item.id); fail(error); },
+      async move(item, folder) {
+        const clean = (x: string) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+        const parts = item.path.split("/");
+        const kindDir = /^(images|videos|files)$/.test(parts[0]) ? parts[0] : "images";
+        const name = parts[parts.length - 1];
+        const dir = folder.split("/").filter(Boolean).map(clean).join("/");
+        const newPath = dir ? `${kindDir}/${dir}/${name}` : `${kindDir}/${name}`;
+        if (newPath === item.path) return item;
+        const { error } = await sb.storage.from("media").move(item.path, newPath); fail(error);
+        const url = sb.storage.from("media").getPublicUrl(newPath).data.publicUrl;
+        const { data, error: e2 } = await sb.from("media").update({ path: newPath, url }).eq("id", item.id).select("*").single(); fail(e2);
+        return data as MediaItem;
+      },
+      async listFolders() { const { data } = await sb.from("settings").select("value").eq("key", "media_folders").maybeSingle(); return ((data?.value as { list?: string[] })?.list) ?? []; },
+      async saveFolders(folders) { const { error } = await sb.from("settings").upsert({ key: "media_folders", value: { list: folders } }); fail(error); },
     },
     settings: {
       async get(key) { const { data } = await sb.from("settings").select("value").eq("key", key).maybeSingle(); return (data?.value as never) ?? null; },
@@ -224,6 +248,9 @@ function demoRepo(): Repo {
         await mut((s) => { s.media.unshift(item); }); onProgress?.(100); return item;
       },
       async remove(item) { await mut((s) => { s.media = s.media.filter((m) => m.id !== item.id); }); },
+      async move(item, folder) { const name = item.path.split("/").pop()!; const path = folder ? `${folder}/${name}` : name; const next = { ...item, path }; await mut((s) => { s.media = s.media.map((m) => (m.id === item.id ? next : m)); }); return next; },
+      async listFolders() { return ((load().settings.media_folders as { list?: string[] })?.list) ?? []; },
+      async saveFolders(folders) { await mut((s) => { s.settings.media_folders = { list: folders }; }); },
     },
     settings: { async get(key) { return (load().settings[key] as never) ?? null; }, async set(key, value) { await mut((s) => { s.settings[key] = value; }); } },
     shipping: { async list() { return load().shipping; }, async save(m) { await mut((s) => { const i = s.shipping.findIndex((x) => x.id === m.id); if (i >= 0) s.shipping[i] = m; else s.shipping.push(m); }); }, async remove(id) { await mut((s) => { s.shipping = s.shipping.filter((m) => m.id !== id); }); } },
