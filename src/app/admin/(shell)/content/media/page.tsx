@@ -7,8 +7,8 @@ import { Video } from "@/components/Media";
 import { bestMatch, fileLabel, folderOf } from "@/lib/admin/match";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import type { MediaItem, ShopProduct } from "@/lib/types";
-import { variant } from "@/lib/mediaVariants";
 import { memo } from "react";
+import { SmartImg } from "@/components/SmartImg";
 
 type Picked = { file: File; folder: string };
 
@@ -17,7 +17,7 @@ const MediaCard = memo(function MediaCard({ m, on, used, toggle, copy, labels, s
   return (
     <div onClick={() => toggle(m.id)} className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-paper ${on ? "border-ink ring-2 ring-ink" : "border-hair hover:border-neutral-400"}`}>
       <input type="checkbox" checked={on} onChange={() => toggle(m.id)} onClick={(e) => e.stopPropagation()} className="absolute left-2 top-2 z-10 h-4 w-4 accent-ink" />
-      <div className="aspect-square bg-tile">{m.kind === "image" ? <img src={variant(m.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" onError={(e) => { if (e.currentTarget.src !== m.url) e.currentTarget.src = m.url; }} /> : <Video video={{ kind: "upload", url: m.url }} className="h-full w-full object-cover" />}</div>
+      <div className="aspect-square bg-tile">{m.kind === "image" ? <SmartImg src={m.url} size="thumb" className="h-full w-full object-cover" /> : <Video video={{ kind: "upload", url: m.url }} className="h-full w-full object-cover" />}</div>
       <div className="p-2 text-[11px]">
         <div className="truncate font-medium">{m.path.split("/").pop()}</div>
         <div className="truncate text-mute">{used ? `${labels.usedBy}: ${used.join(", ")}` : `${labels.unused} · ${size}`}</div>
@@ -201,7 +201,7 @@ export default function Media() {
           <Table head={["", t(adm.media.file), t(adm.products.title), ""]}>
             {review.map((r, i) => (
               <tr key={r.item.id} className={r.slug ? "" : "bg-amber-50/50"}>
-                <Td><img src={variant(r.item.url, "thumb")} alt="" className="h-10 w-10 rounded object-cover" loading="lazy" /></Td>
+                <Td><SmartImg src={r.item.url} size="thumb" className="h-10 w-10 rounded object-cover" /></Td>
                 <Td className="font-mono text-[12px]">{folderOf(r.item.path) && <span className="text-mute">{folderOf(r.item.path)}/</span>}{r.item.path.split("/").pop()}</Td>
                 <Td><Select value={r.slug} onChange={(e) => setReview(review.map((x, k) => (k === i ? { ...x, slug: e.target.value, sure: true } : x)))} className="max-w-md"><option value="">— {t(adm.media.skip)} —</option>{products.map((p) => <option key={p.slug} value={p.slug}>{p.brand} · {p.name}</option>)}</Select></Td>
                 <Td className="text-[11px] text-mute">{r.slug ? (r.sure ? "" : t(adm.media.unsure)) : t(adm.media.noMatch)}</Td>

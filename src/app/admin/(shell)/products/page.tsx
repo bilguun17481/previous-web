@@ -5,7 +5,7 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Badge, Button, downloadCsv, Input, LinkButton, money, PageHeader, Select, Table, Td, useAsync, useT, useToast } from "@/components/admin/ui";
 import { primaryImage } from "@/lib/productImage";
-import { variant } from "@/lib/mediaVariants";
+import { SmartImg } from "@/components/SmartImg";
 import { categories } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 
@@ -33,8 +33,8 @@ export default function Products() {
             <Td><input type="checkbox" className="accent-ink" checked={sel.has(p.id!)} onChange={(e) => { const n = new Set(sel); e.target.checked ? n.add(p.id!) : n.delete(p.id!); setSel(n); }} /></Td>
             <Td>{primaryImage(p) ? (
               <Link href={`/admin/products/${p.id}/`} className="group relative block">
-                <img src={variant(primaryImage(p), "thumb")} alt="" className="h-14 w-14 rounded object-cover" loading="lazy" onError={(e) => { const o = primaryImage(p)!; if (e.currentTarget.src !== o) e.currentTarget.src = o; }} />
-                <span className="pointer-events-none absolute left-16 top-1/2 z-20 hidden -translate-y-1/2 rounded-lg border border-hair bg-paper p-1 shadow-xl group-hover:block"><img src={variant(primaryImage(p), "card")} alt="" className="h-64 w-64 rounded object-contain" onError={(e) => { const o = primaryImage(p)!; if (e.currentTarget.src !== o) e.currentTarget.src = o; }} /></span>
+                <SmartImg src={primaryImage(p)} size="thumb" className="h-14 w-14 rounded object-cover" />
+                <span className="pointer-events-none absolute left-16 top-1/2 z-20 hidden -translate-y-1/2 rounded-lg border border-hair bg-paper p-1 shadow-xl group-hover:block"><SmartImg src={primaryImage(p)} size="card" className="h-64 w-64 rounded object-contain" /></span>
                 {(p.images?.length ?? 0) > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-1.5 text-[10px] font-semibold text-paper">{p.images!.length}</span>}
               </Link>
             ) : <Link href={`/admin/products/${p.id}/`} className="flex h-14 w-14 items-center justify-center rounded border border-dashed border-neutral-300 text-[10px] text-mute">—</Link>}</Td>

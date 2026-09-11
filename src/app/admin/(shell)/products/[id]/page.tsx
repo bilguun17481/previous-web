@@ -7,7 +7,7 @@ import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT
 import { brands, categories, colorHex, colorImage, colorName, type ProductColor } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
-import { variant } from "@/lib/mediaVariants";
+import { SmartImg } from "@/components/SmartImg";
 import type { ShopProduct } from "@/lib/types";
 
 const blank: ShopProduct = { slug: "", brand: "CFMOTO", category: "ctyrkolky", name: "", price: 0, homologation: "—", art: "gear", short: { cs: "", en: "" }, description: { cs: "", en: "" }, specs: [], colors: ["#1f1f1f"], tags: [], status: "draft", stock: 0, sku: "", images: [], videos: [], featured: false };
@@ -82,7 +82,7 @@ export default function ProductEditor() {
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               {(p.images ?? []).map((img, i) => (
                 <div key={img.url + i} draggable onDragStart={() => (drag.current = i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag.current !== null && drag.current !== i) reorder(drag.current, i); drag.current = null; }} className={`group relative aspect-square cursor-move overflow-hidden rounded-md border ${i === 0 ? "border-ink" : "border-hair"}`}>
-                  <img src={variant(img.url, "thumb")} alt="" className="h-full w-full object-cover" loading="lazy" onError={(e) => { if (e.currentTarget.src !== img.url) e.currentTarget.src = img.url; }} />
+                  <SmartImg src={img.url} size="thumb" className="h-full w-full object-cover" />
                   <button type="button" onClick={() => set({ images: p.images!.filter((_, k) => k !== i) })} className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-full bg-paper text-[12px] shadow group-hover:flex">×</button>
                   {i === 0 && <span className="absolute bottom-1 left-1 rounded bg-ink px-1.5 py-0.5 text-[10px] text-paper">Main</span>}
                 </div>
@@ -148,7 +148,7 @@ export default function ProductEditor() {
                     {(p.images?.length ?? 0) > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <button type="button" onClick={() => upd({ image: undefined })} className={`flex h-10 w-10 items-center justify-center rounded border text-[10px] ${!colorImage(c) ? "border-ink" : "border-hair text-mute"}`}>—</button>
-                        {p.images!.map((img) => <button type="button" key={img.url} onClick={() => upd({ image: img.url })} className={`h-10 w-10 overflow-hidden rounded border ${colorImage(c) === img.url ? "border-ink ring-1 ring-ink" : "border-hair"}`}><img src={variant(img.url, "thumb")} alt="" className="h-full w-full object-cover" /></button>)}
+                        {p.images!.map((img) => <button type="button" key={img.url} onClick={() => upd({ image: img.url })} className={`h-10 w-10 overflow-hidden rounded border ${colorImage(c) === img.url ? "border-ink ring-1 ring-ink" : "border-hair"}`}><SmartImg src={img.url} size="thumb" className="h-full w-full object-cover" /></button>)}
                       </div>
                     )}
                   </div>

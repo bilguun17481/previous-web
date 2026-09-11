@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { variant, type Size } from "@/lib/mediaVariants";
+import type { Size } from "@/lib/mediaVariants";
+import { useResolvedSrc } from "./SmartImg";
 /* Product image frame. Renders the real photograph when `src` is given;
    otherwise a studio-backdrop placeholder sized like the final image. */
 export function Photo({
@@ -26,8 +26,7 @@ export function Photo({
   /** Load immediately instead of lazily (the main product image, heroes). */
   priority?: boolean;
 }) {
-  const [current, setCurrent] = useState(() => variant(src, size));
-  useEffect(() => { setCurrent(variant(src, size)); }, [src, size]);
+  const current = useResolvedSrc(src, size);
   const bg =
     tone === "dark"
       ? "radial-gradient(120% 80% at 50% 30%, #3a3a3a 0%, #1a1a1a 55%, #0b0b0b 100%)"
@@ -36,7 +35,7 @@ export function Photo({
     return (
       <div className={`relative overflow-hidden ${ratio} ${className}`} style={{ background: tone === "dark" ? "#111" : "#f4f4f2" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={current} alt={label} loading={priority ? "eager" : "lazy"} decoding="async" onError={() => { if (current !== src) setCurrent(src); }} className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
+        <img src={current} alt={label} loading={priority ? "eager" : "lazy"} decoding="async" className={`absolute inset-0 h-full w-full ${fit === "cover" ? "object-cover" : "object-contain p-[6%]"}`} />
       </div>
     );
   }
