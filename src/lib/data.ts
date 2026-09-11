@@ -25,29 +25,35 @@ export async function getProducts(opts: { category?: Category; featured?: boolea
     if (opts.slugs) list = opts.slugs.map((s) => list.find((p) => p.slug === s)).filter(Boolean) as ShopProduct[];
     return list;
   }
-  let q = supabasePublic().from("products").select("*").eq("status", "active").order("sort");
-  if (opts.category) q = q.eq("category", opts.category);
-  if (opts.featured) q = q.eq("featured", true);
-  if (opts.slugs) q = q.in("slug", opts.slugs);
-  const { data } = await q;
-  return (data ?? []).map(rowToProduct);
+  try {
+    let q = supabasePublic().from("products").select("*").eq("status", "active").order("sort");
+    if (opts.category) q = q.eq("category", opts.category);
+    if (opts.featured) q = q.eq("featured", true);
+    if (opts.slugs) q = q.in("slug", opts.slugs);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map(rowToProduct);
+  } catch (e) { console.error("getProducts", e); return []; }
 }
 
 export async function getProduct(slug: string): Promise<ShopProduct | undefined> {
   if (!supabaseConfigured) return localProducts.find((p) => p.slug === slug);
-  const { data } = await supabasePublic().from("products").select("*").eq("slug", slug).maybeSingle();
-  return data ? rowToProduct(data) : undefined;
+  try {
+    const { data } = await supabasePublic().from("products").select("*").eq("slug", slug).maybeSingle();
+    return data ? rowToProduct(data) : undefined;
+  } catch (e) { console.error("getProduct", e); return undefined; }
 }
 
 export async function getCategories() {
   if (!supabaseConfigured) return localCategories.map((c) => ({ slug: c.slug, label: c.label, blurb: c.blurb, image_url: null as string | null, video_url: null as string | null }));
-  const { data } = await supabasePublic().from("categories").select("*").order("sort");
+  const { data } = await supabasePublic().from("categories").select("*").order("sort").then((r) => r, () => ({ data: null }));
+  if (!data?.length) return localCategories.map((c) => ({ slug: c.slug, label: c.label, blurb: c.blurb, image_url: null as string | null, video_url: null as string | null }));
   return (data ?? []) as { slug: Category; label: Text; blurb: Text; image_url: string | null; video_url: string | null }[];
 }
 
 export async function getPage(slug: string): Promise<Page | null> {
   if (!supabaseConfigured) return null;
-  const { data } = await supabasePublic().from("pages").select("*").eq("slug", slug).eq("status", "published").maybeSingle();
+  const { data } = await supabasePublic().from("pages").select("*").eq("slug", slug).eq("status", "published").maybeSingle().then((r) => r, () => ({ data: null }));
   return (data as Page | null) ?? null;
 }
 
@@ -62,7 +68,7 @@ export async function getPageAsViewer(slug: string): Promise<Page | null> {
 
 export async function getSetting<T = Record<string, unknown>>(key: string): Promise<T | null> {
   if (!supabaseConfigured) return null;
-  const { data } = await supabasePublic().from("settings").select("value").eq("key", key).maybeSingle();
+  const { data } = await supabasePublic().from("settings").select("value").eq("key", key).maybeSingle().then((r) => r, () => ({ data: null }));
   return (data?.value as T) ?? null;
 }
 
