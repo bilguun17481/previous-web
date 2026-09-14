@@ -35,7 +35,24 @@ function SaveBar({ onSave }: { onSave: () => Promise<void> }) {
   const { t } = useT(); const toast = useToast(); const [busy, setBusy] = useState(false);
   return <Button disabled={busy} onClick={async () => { setBusy(true); try { await onSave(); await refreshStorefront(["/", "/pokladna/"]); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } setBusy(false); }}>{t(adm.common.save)}</Button>;
 }
-function useStatus() { const [s, setS] = useState<Status | null>(null); useEffect(() => { if (supabaseConfigured) fetch("/api/admin/status").then((r) => r.ok ? r.json() : null).then(setS).catch(() => {}); }, []); return s; }
+let statusError: string | null = null;
+function useStatus() {
+  const [s, setS] = useState<Status | null>(null);
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    fetch("/api/admin/status/", { cache: "no-store" })
+      .then(async (r) => { if (r.ok) return r.json(); statusError = `${r.status} ${(await r.text()).slice(0, 200)}`; return null; })
+      .then(setS)
+      .catch((e) => { statusError = String((e as Error).message); });
+  }, []);
+  return s;
+}
+/** Shown on tabs that rely on the server status when it could not be loaded, so a broken call is not mistaken for missing keys. */
+function StatusProblem({ status }: { status: Status | null }) {
+  const { t } = useT();
+  if (status || !supabaseConfigured) return null;
+  return <p className="text-[12px] text-signal">{t(adm.settings.statusFailed)}{statusError ? ` (${statusError})` : ""}</p>;
+}
 
 function General() {
   const { t } = useT(); const s = adm.settings.store;
@@ -71,6 +88,7 @@ function Payments() {
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-mute">{t(adm.settings.pay.hint)}</p>
+      <StatusProblem status={status} />
       <div className="grid gap-4 lg:grid-cols-2">
         {(data ?? []).map((m, i) => {
           const gateway = !["bank_transfer", "cash"].includes(m.id);
