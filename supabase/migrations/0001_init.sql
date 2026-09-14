@@ -31,6 +31,10 @@ create or replace function public.is_staff() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.profiles where id = auth.uid());
 $$;
+create or replace function public.is_owner() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'owner');
+$$;
 
 -- ───────────────────────── catalog ─────────────────────────
 create table if not exists public.categories (
@@ -204,7 +208,7 @@ alter table public.settings enable row level security;
 alter table public.media enable row level security;
 
 create policy "profiles self or staff" on public.profiles for select using (id = auth.uid() or public.is_staff());
-create policy "profiles owner manages" on public.profiles for all using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'owner'));
+create policy "profiles owner manages" on public.profiles for all using (public.is_owner()) with check (public.is_owner());
 
 create policy "public read categories" on public.categories for select using (true);
 create policy "staff write categories" on public.categories for all using (public.is_staff()) with check (public.is_staff());
