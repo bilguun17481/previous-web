@@ -6,7 +6,8 @@ import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { defaultHome } from "@/lib/defaultHome";
 import { resizeImage, SIZES, variantPath } from "@/lib/mediaVariants";
-import type { Customer, Discount, MediaItem, Order, Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
+import { activeSandbox } from "@/lib/admin/sandbox";
+import type { ChangeEntity, Changeset, ChangesetItem, Customer, Discount, MediaItem, Order, Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
 
 export interface Profile { id: string; email: string | null; full_name: string | null; role: "owner" | "admin" | "staff"; created_at: string }
 export interface CategoryRow { slug: string; label: Text; blurb: Text; image_url: string | null; video_url: string | null; sort: number }
@@ -39,6 +40,16 @@ export interface Repo {
   payments: { list(): Promise<PaymentMethod[]>; save(m: PaymentMethod): Promise<void> };
   team: { list(): Promise<Profile[]> };
   salesByDay(days: number): Promise<SalesDay[]>;
+  /** Sandboxes: staged change sets that can be previewed and published at once. */
+  changesets: {
+    list(): Promise<Changeset[]>; get(id: string): Promise<Changeset | null>; create(name: string, note?: string): Promise<Changeset>;
+    update(id: string, patch: Partial<Changeset>): Promise<void>; remove(id: string): Promise<void>;
+    items(id: string): Promise<ChangesetItem[]>;
+    stage(id: string, entity: ChangeEntity, entityId: string, label: string, patch: Record<string, unknown>, before: Record<string, unknown> | null): Promise<void>;
+    unstage(itemId: string): Promise<void>;
+    /** Apply every item to the live data and mark the changeset published. Returns the number of items. */
+    publish(id: string): Promise<number>;
+  };
 }
 
 /* ───────────── Supabase ───────────── */
@@ -155,12 +166,29 @@ function supabaseRepo(): Repo {
     },
     team: { async list() { const { data } = await sb.from("profiles").select("*").order("created_at"); return (data ?? []) as Profile[]; } },
     async salesByDay(days) { const { data } = await sb.rpc("sales_by_day", { days }); return ((data ?? []) as SalesDay[]).map((d) => ({ ...d, revenue: Number(d.revenue), orders: Number(d.orders) })); },
+    changesets: {
+      async list() { const { data, error } = await sb.from("changesets").select("*, changeset_items(count)").order("created_at", { ascending: false }); fail(error); return ((data ?? []) as (Changeset & { changeset_items?: { count: number }[] })[]).map((c) => ({ ...c, item_count: c.changeset_items?.[0]?.count ?? 0, changeset_items: undefined })); },
+      async get(id) { const { data } = await sb.from("changesets").select("*").eq("id", id).maybeSingle(); return (data as Changeset) ?? null; },
+      async create(name, note) { const { data, error } = await sb.from("changesets").insert({ name, note: note ?? null }).select("*").single(); fail(error); return data as Changeset; },
+      async update(id, patch) { const { error } = await sb.from("changesets").update(patch).eq("id", id); fail(error); },
+      async remove(id) { const { error } = await sb.from("changesets").delete().eq("id", id); fail(error); },
+      async items(id) { const { data, error } = await sb.from("changeset_items").select("*").eq("changeset_id", id).order("updated_at", { ascending: false }); fail(error); return (data ?? []) as ChangesetItem[]; },
+      async stage(id, entity, entityId, label, patch, before) {
+        // Merge with what is already staged for the same thing, keeping the earliest "before".
+        const { data: ex } = await sb.from("changeset_items").select("*").eq("changeset_id", id).eq("entity", entity).eq("entity_id", entityId).maybeSingle();
+        const merged = ex ? { ...(ex.patch as Record<string, unknown>), ...patch } : patch;
+        const b = ex?.before ? { ...(before ?? {}), ...(ex.before as Record<string, unknown>) } : before;
+        const { error } = await sb.from("changeset_items").upsert({ changeset_id: id, entity, entity_id: entityId, label, patch: merged, before: b, updated_at: new Date().toISOString() }, { onConflict: "changeset_id,entity,entity_id" }); fail(error);
+      },
+      async unstage(itemId) { const { error } = await sb.from("changeset_items").delete().eq("id", itemId); fail(error); },
+      async publish() { throw new Error("publish is provided by repo()"); },
+    },
   };
 }
 
 /* ───────────── Demo (localStorage) ───────────── */
 const KEY = "md-admin-demo-v1";
-type DemoState = { orders: Order[]; products: ShopProduct[]; categories: CategoryRow[]; customers: Customer[]; discounts: Discount[]; pages: Page[]; media: MediaItem[]; settings: Record<string, unknown>; shipping: ShippingMethod[]; payments: PaymentMethod[] };
+type DemoState = { orders: Order[]; products: ShopProduct[]; categories: CategoryRow[]; customers: Customer[]; discounts: Discount[]; pages: Page[]; media: MediaItem[]; settings: Record<string, unknown>; shipping: ShippingMethod[]; payments: PaymentMethod[]; changesets: Changeset[]; changesetItems: ChangesetItem[] };
 
 function seedDemo(): DemoState {
   const now = Date.now();
@@ -225,11 +253,13 @@ function seedDemo(): DemoState {
       { id: "bank_transfer", name: { cs: "Bankovní převod", en: "Bank transfer" }, enabled: true, test_mode: false, config: {}, sort: 4 },
       { id: "cash", name: { cs: "Hotově při odběru", en: "Cash on collection" }, enabled: true, test_mode: false, config: {}, sort: 5 },
     ],
+    changesets: [],
+    changesetItems: [],
   };
 }
 
 function demoRepo(): Repo {
-  const load = (): DemoState => { try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch {} const s = seedDemo(); save(s); return s; };
+  const load = (): DemoState => { try { const r = localStorage.getItem(KEY); if (r) { const s = JSON.parse(r) as DemoState; s.changesets ??= []; s.changesetItems ??= []; return s; } } catch {} const s = seedDemo(); save(s); return s; };
   const save = (s: DemoState) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} };
   const mut = async (fn: (s: DemoState) => void) => { const s = load(); fn(s); save(s); };
   const uid = () => Math.random().toString(36).slice(2, 10);
@@ -278,6 +308,23 @@ function demoRepo(): Repo {
     shipping: { async list() { return load().shipping; }, async save(m) { await mut((s) => { const i = s.shipping.findIndex((x) => x.id === m.id); if (i >= 0) s.shipping[i] = m; else s.shipping.push(m); }); }, async remove(id) { await mut((s) => { s.shipping = s.shipping.filter((m) => m.id !== id); }); } },
     payments: { async list() { return load().payments; }, async save(m) { await mut((s) => { const i = s.payments.findIndex((x) => x.id === m.id); if (i >= 0) s.payments[i] = m; }); } },
     team: { async list() { return [{ id: "u1", email: "servis@elektrodvorak.cz", full_name: "Moto Dvořák", role: "owner", created_at: new Date().toISOString() }]; } },
+    changesets: {
+      async list() { const s = load(); return s.changesets.map((c) => ({ ...c, item_count: s.changesetItems.filter((i) => i.changeset_id === c.id).length })); },
+      async get(id) { return load().changesets.find((c) => c.id === id) ?? null; },
+      async create(name, note) { const c: Changeset = { id: uid(), name, note: note ?? null, status: "open", created_at: new Date().toISOString(), published_at: null }; await mut((s) => { s.changesets.unshift(c); }); return c; },
+      async update(id, patch) { await mut((s) => { const c = s.changesets.find((x) => x.id === id); if (c) Object.assign(c, patch); }); },
+      async remove(id) { await mut((s) => { s.changesets = s.changesets.filter((c) => c.id !== id); s.changesetItems = s.changesetItems.filter((i) => i.changeset_id !== id); }); },
+      async items(id) { return load().changesetItems.filter((i) => i.changeset_id === id); },
+      async stage(id, entity, entityId, label, patch, before) {
+        await mut((s) => {
+          const ex = s.changesetItems.find((i) => i.changeset_id === id && i.entity === entity && i.entity_id === entityId);
+          if (ex) { ex.patch = { ...ex.patch, ...patch }; ex.before = ex.before ? { ...(before ?? {}), ...ex.before } : before; ex.label = label; ex.updated_at = new Date().toISOString(); }
+          else s.changesetItems.unshift({ id: uid(), changeset_id: id, entity, entity_id: entityId, label, patch, before, updated_at: new Date().toISOString() });
+        });
+      },
+      async unstage(itemId) { await mut((s) => { s.changesetItems = s.changesetItems.filter((i) => i.id !== itemId); }); },
+      async publish() { throw new Error("publish is provided by repo()"); },
+    },
     async salesByDay(days) {
       const orders = load().orders;
       return Array.from({ length: days }, (_, i) => {
@@ -290,6 +337,56 @@ function demoRepo(): Repo {
   };
 }
 
+/* ───────────── Sandbox layer ─────────────
+   When a sandbox is active (see lib/admin/sandbox.ts) edits to products, pages and settings are
+   staged into it instead of going live, and reads show the live data with the staged changes applied. */
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+function diff(live: Record<string, unknown> | null, next: Record<string, unknown>) {
+  const patch: Record<string, unknown> = {}; const before: Record<string, unknown> = {};
+  for (const k of Object.keys(next)) { if (k === "id" || k === "staged") continue; if (!live || !same(live[k], next[k])) { patch[k] = next[k]; before[k] = live?.[k] ?? null; } }
+  return { patch, before };
+}
+async function publishChangeset(base: Repo, id: string) {
+  const items = await base.changesets.items(id);
+  for (const it of items) {
+    if (it.entity === "product") { const live = await base.products.get(it.entity_id); if (live) await base.products.save({ ...live, ...it.patch, id: it.entity_id } as ShopProduct); }
+    else if (it.entity === "page") await base.pages.save(it.patch as unknown as Page);
+    else if (it.entity === "setting") await base.settings.set(it.entity_id, it.patch.value);
+  }
+  await base.changesets.update(id, { status: "published", published_at: new Date().toISOString() });
+  return items.length;
+}
+function withSandbox(base: Repo): Repo {
+  const active = () => activeSandbox()?.id ?? null;
+  const staged = async (entity: ChangeEntity) => { const id = active(); if (!id) return null; const its = await base.changesets.items(id); return new Map(its.filter((i) => i.entity === entity).map((i) => [i.entity_id, i.patch])); };
+  return {
+    ...base,
+    products: {
+      ...base.products,
+      async list() { const l = await base.products.list(); const m = await staged("product"); if (!m?.size) return l; return l.map((p) => (p.id && m.has(p.id) ? ({ ...p, ...m.get(p.id), staged: true } as ShopProduct) : p)); },
+      async get(id) { const p = await base.products.get(id); if (!p) return p; const m = await staged("product"); return m?.has(id) ? ({ ...p, ...m.get(id), staged: true } as ShopProduct) : p; },
+      async save(p) {
+        const sid = active(); if (!sid || !p.id) return base.products.save(p);
+        const live = await base.products.get(p.id);
+        const { patch, before } = diff(live as unknown as Record<string, unknown>, p as unknown as Record<string, unknown>);
+        if (Object.keys(patch).length) await base.changesets.stage(sid, "product", p.id, p.name ?? p.slug, patch, before);
+        return p.id;
+      },
+    },
+    pages: {
+      ...base.pages,
+      async list() { const l = await base.pages.list(); const m = await staged("page"); if (!m?.size) return l; const out = l.map((p) => (m.has(p.slug) ? (m.get(p.slug) as unknown as Page) : p)); for (const [slug, patch] of m) if (!out.some((p) => p.slug === slug)) out.push(patch as unknown as Page); return out; },
+      async get(slug) { const m = await staged("page"); if (m?.has(slug)) return m.get(slug) as unknown as Page; return base.pages.get(slug); },
+      async save(p) { const sid = active(); if (!sid) return base.pages.save(p); const live = await base.pages.get(p.slug); await base.changesets.stage(sid, "page", p.slug, p.title?.cs || p.slug, { ...p, updated_at: new Date().toISOString() } as unknown as Record<string, unknown>, (live as unknown as Record<string, unknown>) ?? null); },
+    },
+    settings: {
+      async get<T>(key: string) { const m = await staged("setting"); if (m?.has(key)) return (m.get(key) as { value: T }).value; return base.settings.get<T>(key); },
+      async set(key, value) { const sid = active(); if (!sid) return base.settings.set(key, value); const live = await base.settings.get(key); await base.changesets.stage(sid, "setting", key, key, { value }, { value: live }); },
+    },
+    changesets: { ...base.changesets, publish: (id) => publishChangeset(base, id) },
+  };
+}
+
 let cached: Repo | null = null;
-export function repo(): Repo { if (!cached) cached = supabaseConfigured ? supabaseRepo() : demoRepo(); return cached; }
+export function repo(): Repo { if (!cached) cached = withSandbox(supabaseConfigured ? supabaseRepo() : demoRepo()); return cached; }
 export function resetDemo() { try { localStorage.removeItem(KEY); } catch {} cached = null; }

@@ -8,12 +8,46 @@ import { primaryImage } from "@/lib/productImage";
 import { SmartImg } from "@/components/SmartImg";
 import { categories } from "@/data/catalog";
 import { refreshStorefront } from "@/lib/admin/revalidate";
+import { useActiveSandbox } from "@/lib/admin/sandbox";
+import { Card, Field } from "@/components/admin/ui";
+import type { ShopProduct } from "@/lib/types";
+
+type Mode = "percent" | "amount" | "set"; type Round = "none" | "990" | "10" | "100";
+const roundTo = (n: number, r: Round) => { if (r === "none") return Math.round(n); if (r === "10") return Math.round(n / 10) * 10; if (r === "100") return Math.round(n / 100) * 100; return Math.max(0, Math.round(n / 1000) * 1000 - 10); };
+const newPrice = (p: ShopProduct, mode: Mode, v: number, r: Round) => roundTo(mode === "percent" ? p.price * (1 + v / 100) : mode === "amount" ? p.price + v : v, r);
+
+/** Bulk price change for the selected products. Goes through repo(), so an active sandbox stages it. */
+function PriceTool({ items, onDone, onClose }: { items: ShopProduct[]; onDone: () => void; onClose: () => void }) {
+  const { t } = useT(); const toast = useToast(); const sandbox = useActiveSandbox(); const s = adm.products.price;
+  const [mode, setMode] = useState<Mode>("percent"); const [v, setV] = useState(-5); const [r, setR] = useState<Round>("990"); const [keepOld, setKeepOld] = useState(true); const [busy, setBusy] = useState(false);
+  const apply = async () => {
+    setBusy(true); let n = 0;
+    for (const p of items) { const np = newPrice(p, mode, v, r); if (np === p.price) continue; await repo().products.save({ ...p, price: np, oldPrice: keepOld && np < p.price ? (p.oldPrice && p.oldPrice > p.price ? p.oldPrice : p.price) : p.oldPrice }); n++; }
+    setBusy(false); toast(`${t(s.applied)} ${n}`); onDone();
+  };
+  return (
+    <Card title={`${t(s.title)} (${items.length})`} actions={<Button variant="ghost" onClick={onClose}>×</Button>} className="mb-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Field label={t(s.mode)}><Select value={mode} onChange={(e) => setMode(e.target.value as Mode)}><option value="percent">{t(s.percent)}</option><option value="amount">{t(s.amount)}</option><option value="set">{t(s.set)}</option></Select></Field>
+        <Field label={t(s.value)}><Input type="number" value={v} onChange={(e) => setV(Number(e.target.value))} /></Field>
+        <Field label={t(s.round)}><Select value={r} onChange={(e) => setR(e.target.value as Round)}><option value="none">{t(s.roundNone)}</option><option value="990">{t(s.round990)}</option><option value="10">{t(s.round10)}</option><option value="100">{t(s.round100)}</option></Select></Field>
+        <label className="flex items-end gap-2 pb-2 text-[13px]"><input type="checkbox" className="accent-ink" checked={keepOld} onChange={(e) => setKeepOld(e.target.checked)} />{t(s.keepOld)}</label>
+      </div>
+      <div className="mt-3 text-[12px] text-mute">{t(s.preview)}: {items.slice(0, 4).map((p) => `${p.name}: ${money(p.price)} → ${money(newPrice(p, mode, v, r))}`).join(" · ")}{items.length > 4 ? " · …" : ""}</div>
+      <div className="mt-3 flex items-center gap-3">
+        <Button onClick={apply} disabled={busy}>{t(s.apply)}</Button>
+        <span className={`text-[12px] ${sandbox ? "text-violet-700" : "text-amber-700"}`}>{sandbox ? `${t(s.toSandbox)} „${sandbox.name}“` : t(s.toLive)}</span>
+      </div>
+    </Card>
+  );
+}
 
 export default function Products() {
   const { t } = useT();
   const toast = useToast();
   const [q, setQ] = useState(""); const [cat, setCat] = useState(""); const [status, setStatus] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [priceTool, setPriceTool] = useState(false);
   const { data, reload } = useAsync(() => repo().products.list());
   const list = useMemo(() => (data ?? []).filter((p) => (!cat || p.category === cat) && (!status || p.status === status) && (!q || `${p.name} ${p.brand} ${p.sku ?? ""}`.toLowerCase().includes(q.toLowerCase()))), [data, q, cat, status]);
   const bulk = async (s: "active" | "archived") => { for (const id of sel) { const p = list.find((x) => x.id === id); if (p) await repo().products.save({ ...p, status: s }); } setSel(new Set()); await refreshStorefront(["/", "/ctyrkolky/", "/utv/", "/motocykly/", "/skutry/", "/prislusenstvi/"]); toast(t(adm.common.saved)); reload(); };
@@ -25,8 +59,9 @@ export default function Products() {
         <Input placeholder={t(adm.nav.search)} value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
         <Select value={cat} onChange={(e) => setCat(e.target.value)} className="w-44!"><option value="">{t(adm.products.category)}: {t(adm.common.all)}</option>{categories.map((c) => <option key={c.slug} value={c.slug}>{t(c.label)}</option>)}</Select>
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-40!"><option value="">{t(adm.common.status)}: {t(adm.common.all)}</option><option value="active">{t(adm.products.statusActive)}</option><option value="draft">{t(adm.products.statusDraft)}</option><option value="archived">{t(adm.products.statusArchived)}</option></Select>
-        {sel.size > 0 && <div className="ml-auto flex gap-2"><Button variant="secondary" onClick={() => bulk("active")}>{t(adm.products.bulkActivate)} ({sel.size})</Button><Button variant="secondary" onClick={() => bulk("archived")}>{t(adm.products.bulkArchive)}</Button></div>}
+        {sel.size > 0 && <div className="ml-auto flex gap-2"><Button variant="secondary" onClick={() => setPriceTool(true)}>{t(adm.products.bulkPrice)} ({sel.size})</Button><Button variant="secondary" onClick={() => bulk("active")}>{t(adm.products.bulkActivate)}</Button><Button variant="secondary" onClick={() => bulk("archived")}>{t(adm.products.bulkArchive)}</Button></div>}
       </div>
+      {priceTool && sel.size > 0 && <PriceTool items={list.filter((p) => sel.has(p.id!))} onDone={() => { setPriceTool(false); setSel(new Set()); reload(); }} onClose={() => setPriceTool(false)} />}
       <Table head={[<input key="all" type="checkbox" className="accent-ink" checked={sel.size === list.length && list.length > 0} onChange={(e) => setSel(e.target.checked ? new Set(list.map((p) => p.id!)) : new Set())} />, "", t(adm.common.name), t(adm.products.category), t(adm.common.status), t(adm.common.stock), t(adm.common.price)]}>
         {list.map((p) => (
           <tr key={p.id} className="hover:bg-tile">
@@ -38,7 +73,7 @@ export default function Products() {
                 {(p.images?.length ?? 0) > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-ink px-1.5 text-[10px] font-semibold text-paper">{p.images!.length}</span>}
               </Link>
             ) : <Link href={`/admin/products/${p.id}/`} className="flex h-14 w-14 items-center justify-center rounded border border-dashed border-neutral-300 text-[10px] text-mute">—</Link>}</Td>
-            <Td><Link href={`/admin/products/${p.id}/`} className="font-semibold hover:underline">{p.name}</Link><div className="text-[11px] text-mute">{[p.brand, p.sku, p.featured ? "★" : null].filter(Boolean).join(" · ")}</div></Td>
+            <Td><Link href={`/admin/products/${p.id}/`} className="font-semibold hover:underline">{p.name}</Link><div className="text-[11px] text-mute">{[p.brand, p.sku, p.featured ? "★" : null].filter(Boolean).join(" · ")}{p.staged && <span className="ml-1 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">{t(adm.sandbox.stagedBadge)}</span>}</div></Td>
             <Td className="text-mute">{t(categories.find((c) => c.slug === p.category)?.label ?? { cs: p.category, en: p.category })}</Td>
             <Td><Badge tone={tone(p.status)}>{p.status === "active" ? t(adm.products.statusActive) : p.status === "draft" ? t(adm.products.statusDraft) : t(adm.products.statusArchived)}</Badge></Td>
             <Td className={(p.stock ?? 0) <= 0 ? "text-signal" : ""}>{p.stock ?? 0}</Td>

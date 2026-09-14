@@ -1,7 +1,8 @@
 import { categories as localCategories, products as localProducts, type Category, type Product } from "@/data/catalog";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabasePublic } from "@/lib/supabase/public";
-import type { Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
+import { cache } from "react";
+import type { ChangesetItem, Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
 
 /* Read side of the storefront. With Supabase configured it reads the database;
    otherwise (local dev, GitHub Pages export) it serves the bundled catalog. */
@@ -18,6 +19,45 @@ const rowToProduct = (r: Record<string, unknown>): ShopProduct => ({
   description: (r.description as Text) ?? undefined, featured: r.featured as boolean,
 });
 
+/* ───── Sandbox preview ─────
+   A signed-in staff member who activated a sandbox in the admin carries an `md-sandbox` cookie.
+   Their storefront requests then show the live data with the sandbox's staged changes applied.
+   Anonymous visitors never see it: the items are read as the viewer and RLS limits them to staff. */
+const sandboxItems = cache(async (): Promise<{ id: string; items: ChangesetItem[] } | null> => {
+  if (!supabaseConfigured) return null;
+  try {
+    const { cookies } = await import("next/headers");
+    const id = (await cookies()).get("md-sandbox")?.value;
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { supabaseServer } = await import("@/lib/supabase/server");
+    const sb = await supabaseServer();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return null;
+    const { data } = await sb.from("changeset_items").select("*").eq("changeset_id", id);
+    return { id, items: (data as ChangesetItem[]) ?? [] };
+  } catch { return null; }
+});
+/** Name of the sandbox being previewed, for the storefront banner. Null when not previewing. */
+export const sandboxPreview = cache(async (): Promise<{ id: string; name: string } | null> => {
+  const sx = await sandboxItems(); if (!sx) return null;
+  try {
+    const { supabaseServer } = await import("@/lib/supabase/server");
+    const sb = await supabaseServer();
+    const { data } = await sb.from("changesets").select("name,status").eq("id", sx.id).maybeSingle();
+    return data && data.status === "open" ? { id: sx.id, name: data.name as string } : null;
+  } catch { return null; }
+});
+const overlayProducts = async (list: ShopProduct[]) => {
+  const sx = await sandboxItems(); if (!sx?.items.length) return list;
+  const m = new Map(sx.items.filter((i) => i.entity === "product").map((i) => [i.entity_id, i.patch]));
+  return list.map((p) => (p.id && m.has(p.id) ? ({ ...p, ...m.get(p.id) } as ShopProduct) : p));
+};
+const overlayPage = async (slug: string, page: Page | null) => {
+  const sx = await sandboxItems(); if (!sx) return page;
+  const it = sx.items.find((i) => i.entity === "page" && i.entity_id === slug);
+  return it ? (it.patch as unknown as Page) : page;
+};
+
 export async function getProducts(opts: { category?: Category; featured?: boolean; slugs?: string[] } = {}): Promise<ShopProduct[]> {
   if (!supabaseConfigured) {
     let list: ShopProduct[] = localProducts;
@@ -32,7 +72,7 @@ export async function getProducts(opts: { category?: Category; featured?: boolea
     if (opts.slugs) q = q.in("slug", opts.slugs);
     const { data, error } = await q;
     if (error) throw error;
-    return (data ?? []).map(rowToProduct);
+    return overlayProducts((data ?? []).map(rowToProduct));
   } catch (e) { console.error("getProducts", e); return []; }
 }
 
@@ -41,7 +81,7 @@ export async function getProduct(slug: string): Promise<ShopProduct | undefined>
   try {
     const { data, error } = await supabasePublic().from("products").select("*").eq("slug", slug).maybeSingle();
     if (error) throw error;
-    return data ? rowToProduct(data) : undefined;
+    return data ? (await overlayProducts([rowToProduct(data)]))[0] : undefined;
   } catch (e) { console.error("getProduct", e); return localProducts.find((p) => p.slug === slug); }
 }
 
@@ -55,7 +95,7 @@ export async function getCategories() {
 export async function getPage(slug: string): Promise<Page | null> {
   if (!supabaseConfigured) return null;
   const { data } = await supabasePublic().from("pages").select("*").eq("slug", slug).eq("status", "published").maybeSingle().then((r) => r, () => ({ data: null }));
-  return (data as Page | null) ?? null;
+  return overlayPage(slug, (data as Page | null) ?? null);
 }
 
 /** Same as getPage but as the signed-in viewer, so staff can preview drafts. */
@@ -70,6 +110,9 @@ export async function getPageAsViewer(slug: string): Promise<Page | null> {
 export async function getSetting<T = Record<string, unknown>>(key: string): Promise<T | null> {
   if (!supabaseConfigured) return null;
   const { data } = await supabasePublic().from("settings").select("value").eq("key", key).maybeSingle().then((r) => r, () => ({ data: null }));
+  const sx = await sandboxItems();
+  const it = sx?.items.find((i) => i.entity === "setting" && i.entity_id === key);
+  if (it) return (it.patch as { value: T }).value;
   return (data?.value as T) ?? null;
 }
 

@@ -38,6 +38,16 @@ npm run build && npm start
 
 Gateways and carriers marked "manual" in Settings → Shipping have no public API without a contract; orders still record their tracking numbers and link to tracking pages.
 
+## Sandbox (staged changes)
+
+Admin → Sandbox. A sandbox is a named bundle of changes to products, pages and settings. Create one and click "Pracovat v něm": from then on every save in the admin is staged into the sandbox instead of going live, and the admin shows the staged versions (products carry an "in sandbox" badge). "Náhled na webu" opens the storefront with the staged changes applied, visible only to signed-in staff (an `md-sandbox` cookie; the data is read as the viewer, so RLS keeps it staff-only). "Publikovat vše" applies everything to the live data at once; "Zahodit" drops it. The bulk price tool on the product list (select rows → "Změnit ceny…") is the typical way to prepare a price change: percent or amount, rounding to …990, and the old price shown struck through.
+
+Tables: `changesets`, `changeset_items` (migration `0003_sandbox.sql`). Code: `src/lib/admin/sandbox.ts` (active sandbox state), the `withSandbox` wrapper in `src/lib/admin/repo.ts`, and the overlay in `src/lib/data.ts`.
+
+## Page builder
+
+Admin → Obsah → Stránky. The editor shows a live preview (an iframe at desktop or phone width, so breakpoints behave like the real site), a section list on the left (drag to reorder, hide, duplicate) and an inspector on the right with three tabs: Obsah (texts, media, links), Vzhled (height, alignment, free text placement over hero and banner photos by dragging in the preview, overlay, background and text colours, padding, columns, button style) and Písmo (font, size, weight, colour, spacing, uppercase, shadow for every text element; fonts load from Google Fonts on demand, see `src/lib/fonts.ts`). Undo/redo with Ctrl+Z / Ctrl+Shift+Z, save with Ctrl+S. Sections render through `src/components/Sections.tsx`; the preview frame is `src/app/admin/preview/`.
+
 ## Stripe
 
 Card payments use Stripe Checkout (Stripe's hosted payment page). The shop creates a Checkout Session for the order, sends the customer to Stripe, and marks the order paid when Stripe's webhook arrives.

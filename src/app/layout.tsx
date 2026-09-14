@@ -3,7 +3,8 @@ import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
 import { CartProvider } from "@/lib/cart";
 import { SettingsProvider, type SiteSettings } from "@/lib/settings";
-import { getSetting } from "@/lib/data";
+import { getSetting, sandboxPreview } from "@/lib/data";
+import { SandboxBar } from "@/components/SandboxBar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { publicEnv } from "@/lib/env";
@@ -22,6 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getSetting<SiteSettings["store"]>("store"), getSetting<SiteSettings["announcement"]>("announcement"), getSetting<SiteSettings["theme"]>("theme"),
   ]);
   const settings: SiteSettings = { store, announcement, theme };
+  const sandbox = await sandboxPreview();
   const vars = [theme?.accent && `--color-ink:${theme.accent}`, theme?.signal && `--color-signal:${theme.signal}`, theme?.font && theme.font !== "Inter" && `--font-sans:"${theme.font}",Inter Variable,sans-serif`].filter(Boolean).join(";");
   // Public runtime settings for the browser, so the client works even when build-time variables were absent.
   const runtimeEnv = JSON.stringify({ url: publicEnv("NEXT_PUBLIC_SUPABASE_URL"), anonKey: publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL") });
@@ -38,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Header />
               <main>{children}</main>
               <Footer />
+              {sandbox ? <SandboxBar name={sandbox.name} /> : null}
             </CartProvider>
           </SettingsProvider>
         </LangProvider>

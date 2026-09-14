@@ -7,12 +7,13 @@ import { repo } from "@/lib/admin/repo";
 import { useLang } from "@/lib/i18n";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { setActiveSandbox, useActiveSandbox } from "@/lib/admin/sandbox";
 import { ToastProvider, useT } from "./ui";
 
 const I = {
   home: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", orders: "M6 3h12l1 4H5zM5 7h14v13H5zM9 11h6", products: "M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10",
   customers: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8", discounts: "M20 12l-8 8-8-8V4h8zM8 8h.01",
-  content: "M4 4h16v16H4zM4 9h16M9 9v11", analytics: "M4 20V10M10 20V4M16 20v-7M22 20H2", settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
+  content: "M4 4h16v16H4zM4 9h16M9 9v11", sandbox: "M9 3h6M10 3v6L4 20h16l-6-11V3M7 15h10", analytics: "M4 20V10M10 20V4M16 20v-7M22 20H2", settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
 };
 const Icon = ({ d }: { d: string }) => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
 
@@ -22,11 +23,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const sandbox = useActiveSandbox();
   const nav = [
     { href: "/admin/", key: "home", icon: I.home }, { href: "/admin/orders/", key: "orders", icon: I.orders }, { href: "/admin/products/", key: "products", icon: I.products },
     { href: "/admin/customers/", key: "customers", icon: I.customers }, { href: "/admin/discounts/", key: "discounts", icon: I.discounts },
     { href: "/admin/content/pages/", key: "content", icon: I.content, children: [{ href: "/admin/content/pages/", key: "pages" }, { href: "/admin/content/media/", key: "media" }, { href: "/admin/content/categories/", key: "categories" }] },
-    { href: "/admin/analytics/", key: "analytics", icon: I.analytics }, { href: "/admin/settings/general/", key: "settings", icon: I.settings },
+    { href: "/admin/analytics/", key: "analytics", icon: I.analytics }, { href: "/admin/sandbox/", key: "sandbox", icon: I.sandbox }, { href: "/admin/settings/general/", key: "settings", icon: I.settings },
   ] as const;
   const active = (href: string) => href === "/admin/" ? pathname === "/admin" || pathname === "/admin/" : pathname.startsWith(href.replace(/\/$/, ""));
   const logout = async () => { if (supabaseConfigured) await supabaseBrowser().auth.signOut(); router.push("/admin/login/"); };
@@ -40,6 +42,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <div className="hidden flex-1 md:block"><input placeholder={t(adm.nav.search)} className="h-8 w-full max-w-md rounded-md border border-hair bg-[#f6f6f4] px-3 text-[13px] outline-none focus:border-ink" onKeyDown={(e) => { if (e.key === "Enter") router.push(`/admin/orders/?q=${encodeURIComponent((e.target as HTMLInputElement).value)}`); }} /></div>
           <div className="ml-auto flex items-center gap-3 text-[12px]">
             {repo().mode === "demo" && <span className="hidden rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 md:inline">Demo</span>}
+            {sandbox ? <Link href="/admin/sandbox/" className="inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-2.5 py-1 font-medium text-white hover:bg-violet-700"><span className="h-1.5 w-1.5 rounded-full bg-white" />Sandbox: {sandbox.name}<button onClick={(e) => { e.preventDefault(); setActiveSandbox(null); }} title={t(adm.sandbox.deactivate)} className="ml-1 rounded-full px-1 hover:bg-white/20">×</button></Link>
+              : <Link href="/admin/sandbox/" className="hidden items-center gap-1.5 rounded-full border border-hair px-2.5 py-1 font-medium text-mute hover:bg-tile md:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{t(adm.sandbox.live)}</Link>}
             <div className="flex">{(["cs", "en"] as const).map((l) => <button key={l} onClick={() => setLang(l)} className={`px-1.5 font-semibold uppercase ${lang === l ? "" : "text-mute"}`}>{l === "cs" ? "CZ" : "EN"}</button>)}</div>
             <Link href="/" target="_blank" className="hidden rounded-md border border-hair px-2.5 py-1.5 hover:bg-tile sm:inline">{t(adm.nav.viewStore)}</Link>
             <button onClick={logout} className="rounded-md px-2 py-1.5 hover:bg-tile">{t(adm.nav.logout)}</button>
