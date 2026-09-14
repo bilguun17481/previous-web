@@ -72,7 +72,7 @@ export async function createOrder(input: CheckoutInput, siteUrl: string) {
   const result = await provider.createPayment(o, {
     returnUrl: `${siteUrl}/objednavka/${o.id}/?paid=1`,
     cancelUrl: `${siteUrl}/objednavka/${o.id}/?cancelled=1`,
-    notifyUrl: `${siteUrl}/api/webhooks/${input.paymentMethod}`,
+    notifyUrl: `${siteUrl}/api/webhooks/${input.paymentMethod}/`,
   });
   await db.from("orders").update({ payment_ref: result.ref ?? null, payment_status: result.status === "paid" ? "paid" : result.redirectUrl ? "pending" : "unpaid" }).eq("id", o.id);
 

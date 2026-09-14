@@ -7,6 +7,7 @@ export async function GET(req: Request) {
   const url = publicEnv("NEXT_PUBLIC_SUPABASE_URL");
   const anon = publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const stripeKey = (k?: string) => { const v = (k ?? "").trim(); return !v ? "missing" : /^sk_test_|^rk_test_/.test(v) ? "test" : /^sk_live_|^rk_live_/.test(v) ? "live" : v.startsWith("pk_") ? "wrong: that is the publishable key, the secret key starts with sk_" : "unrecognised"; };
   const shape = (k: string) => (!k ? "missing" : k.startsWith("sb_publishable_") ? "publishable" : k.startsWith("sb_secret_") ? "secret" : k.startsWith("eyJ") ? "legacy-jwt" : "unrecognised");
   const problems: string[] = [];
   if (!url) problems.push("NEXT_PUBLIC_SUPABASE_URL is missing");
@@ -67,6 +68,7 @@ export async function GET(req: Request) {
     ...(product !== undefined ? { product } : {}),
     problems,
     env: { url: url ? url.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(anon), serviceKey: shape(service), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL") || "missing" },
+    stripe: { secretKey: stripeKey(process.env.STRIPE_SECRET_KEY), webhookSecret: (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim().startsWith("whsec_") ? "set" : (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim() ? "unrecognised" : "missing", webhookUrl: `${(publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "")}/api/webhooks/stripe/` },
     browser,
     supabase: { auth, database: db },
   });
