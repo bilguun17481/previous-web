@@ -8,5 +8,7 @@ export function publicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABA
     : name === "NEXT_PUBLIC_SUPABASE_ANON_KEY" ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     : name === "NEXT_PUBLIC_SITE_URL" ? process.env.NEXT_PUBLIC_SITE_URL
     : process.env.NEXT_PUBLIC_PACKETA_API_KEY;
-  return (live || built || "").trim();
+  const v = (live || built || "").trim();
+  // Addresses are joined with "/..." later, so a trailing slash typed at the host must not double up.
+  return name === "NEXT_PUBLIC_SITE_URL" || name === "NEXT_PUBLIC_SUPABASE_URL" ? v.replace(/\/+$/, "") : v;
 }
