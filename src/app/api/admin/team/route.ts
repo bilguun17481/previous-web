@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentStaff } from "@/lib/staff";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { publicEnv } from "@/lib/env";
 
 /** Owner/admin only: invite a staff member by email or change a role. */
 export async function POST(req: Request) {
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
   if (!me || me.role === "staff") return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { email, role } = await req.json();
   const db = supabaseAdmin();
-  const { data, error } = await db.auth.admin.inviteUserByEmail(email, { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/login/` });
+  const { data, error } = await db.auth.admin.inviteUserByEmail(email, { redirectTo: `${publicEnv("NEXT_PUBLIC_SITE_URL")}/admin/login/` });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (role) await db.from("profiles").update({ role }).eq("id", data.user.id);
   return NextResponse.json({ ok: true });

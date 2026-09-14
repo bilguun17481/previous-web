@@ -39,9 +39,10 @@ export async function getProducts(opts: { category?: Category; featured?: boolea
 export async function getProduct(slug: string): Promise<ShopProduct | undefined> {
   if (!supabaseConfigured) return localProducts.find((p) => p.slug === slug);
   try {
-    const { data } = await supabasePublic().from("products").select("*").eq("slug", slug).maybeSingle();
+    const { data, error } = await supabasePublic().from("products").select("*").eq("slug", slug).maybeSingle();
+    if (error) throw error;
     return data ? rowToProduct(data) : undefined;
-  } catch (e) { console.error("getProduct", e); return undefined; }
+  } catch (e) { console.error("getProduct", e); return localProducts.find((p) => p.slug === slug); }
 }
 
 export async function getCategories() {

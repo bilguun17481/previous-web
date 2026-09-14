@@ -47,7 +47,7 @@ npm run cf:build      # builds .open-next/
 npm run cf:preview    # runs the worker locally with wrangler
 ```
 
-On Cloudflare: Workers & Pages → Create → Workers → Import a repository → pick this repo and branch. Build command `npm run cf:build`, deploy command `npx wrangler deploy`. Add the variables from `.env.example` under both Settings → Build → Variables and secrets (needed at build time for the `NEXT_PUBLIC_*` values) and Settings → Variables and Secrets (runtime). Then set `NEXT_PUBLIC_SITE_URL` and the Supabase Auth Site URL to the worker's address.
+On Cloudflare: Workers & Pages → Create → Workers → Import a repository → pick this repo and branch. Build command `npm run cf:build`, deploy command `npx wrangler deploy`. Add the variables from `.env.example` under Settings → Variables and Secrets (runtime). The runtime values are the source of truth: the server reads them on every request and hands the public ones to the browser through `window.__ENV__`, so build-time variables are optional and a wrong build-time value cannot break the site. Then set `NEXT_PUBLIC_SITE_URL` and the Supabase Auth Site URL to the worker's address. `/api/health/` reports what the server and the browser are using and whether they match.
 
 ## Static mirror on GitHub Pages
 

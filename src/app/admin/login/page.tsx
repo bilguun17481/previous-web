@@ -3,7 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { useT, Input, Field, Button } from "@/components/admin/ui";
-import { supabaseConfigured } from "@/lib/supabase/env";
+import { SUPABASE_URL, supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
@@ -15,6 +15,8 @@ function Login() {
   const [mode, setMode] = useState<"in" | "up" | "forgot" | "reset">(params.get("reset") ? "reset" : "in");
   const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  // A network-level failure means the browser could not reach Supabase at all: show the address it tried.
+  const explain = (m: string) => (/failed to fetch|networkerror|load failed/i.test(m) ? `${m} (${SUPABASE_URL}). ${t(adm.login.unreachable)}` : m);
   // Arriving from a confirmation link (or already signed in): go straight to the admin.
   // Arriving from a password-reset link: stay here and show the new-password form.
   useEffect(() => {
@@ -34,18 +36,18 @@ function Login() {
     if (mode === "forgot") {
       const r = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/admin/login/?reset=1` });
       setBusy(false);
-      return setMsg(r.error ? r.error.message : t(adm.login.resetSent));
+      return setMsg(r.error ? explain(r.error.message) : t(adm.login.resetSent));
     }
     if (mode === "reset") {
       const r = await sb.auth.updateUser({ password });
       setBusy(false);
-      if (r.error) return setMsg(r.error.message);
+      if (r.error) return setMsg(explain(r.error.message));
       router.replace(next); router.refresh();
       return;
     }
     const r = mode === "in" ? await sb.auth.signInWithPassword({ email, password }) : await sb.auth.signUp({ email, password });
     setBusy(false);
-    if (r.error) return setMsg(r.error.message);
+    if (r.error) return setMsg(explain(r.error.message));
     if (mode === "up" && !r.data.session) return setMsg(t(adm.login.checkEmail));
     router.push(next); router.refresh();
   };

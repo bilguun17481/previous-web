@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createOrder, type CheckoutInput } from "@/lib/checkout";
+import { publicEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,7 @@ export async function POST(req: Request) {
     if (!input.email || !input.items?.length || !input.shippingMethod || !input.paymentMethod) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
-    const site = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
+    const site = publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin;
     const result = await createOrder(input, site);
     return NextResponse.json(result);
   } catch (e) {

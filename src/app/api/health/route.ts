@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { publicEnv } from "@/lib/env";
 
 /** Public diagnostics: which settings are present and whether Supabase answers. Never returns key values. */
 export async function GET(req: Request) {
   const productSlug = new URL(req.url).searchParams.get("product");
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const url = publicEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anon = publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const shape = (k: string) => (!k ? "missing" : k.startsWith("sb_publishable_") ? "publishable" : k.startsWith("sb_secret_") ? "secret" : k.startsWith("eyJ") ? "legacy-jwt" : "unrecognised");
   const problems: string[] = [];
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
     const rows = (await r.json()) as { slug: string; status: string; images: { url: string }[]; updated_at: string }[];
     product = rows[0] ? { slug: rows[0].slug, status: rows[0].status, imageCount: rows[0].images?.length ?? 0, firstImage: rows[0].images?.[0]?.url ?? null, updated_at: rows[0].updated_at } : "not found";
     // Fetch the public product page as a visitor would and see whether the first photo is in the HTML.
-    const site = (process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin).replace(/\/$/, "");
+    const site = (publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "");
     const first = rows[0]?.images?.[0]?.url;
     if (first) {
       try {
@@ -47,11 +48,26 @@ export async function GET(req: Request) {
       } catch (e) { (product as Record<string, unknown>).page = `error: ${(e as Error).message}`; }
     }
   }
+  // What the browser receives: the root layout injects window.__ENV__ into every page from the runtime environment.
+  let browser: Record<string, unknown> = {};
+  try {
+    const site = (publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "");
+    const r = await fetch(`${site}/`, { cache: "no-store", headers: { "user-agent": "health-check" }, signal: AbortSignal.timeout(8000) });
+    const m = (await r.text()).match(/window\.__ENV__=(\{.*?\})<\/script>/);
+    const env = m ? (JSON.parse(m[1]) as { url?: string; anonKey?: string; siteUrl?: string }) : null;
+    if (!env) { browser = { status: r.status, problem: "window.__ENV__ not found in the page HTML" }; problems.push("The page does not carry the runtime settings for the browser"); }
+    else {
+      const bUrl = (env.url ?? "").trim();
+      browser = { url: bUrl ? bUrl.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(env.anonKey ?? ""), siteUrl: env.siteUrl || "missing", matchesServer: bUrl === url.trim() && (env.anonKey ?? "").trim() === anon.trim() };
+      if (bUrl && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(bUrl)) problems.push("The Supabase URL handed to the browser is malformed: fix NEXT_PUBLIC_SUPABASE_URL in the runtime variables and redeploy");
+    }
+  } catch (e) { browser = { error: (e as Error).message }; }
   return NextResponse.json({
     ok: problems.length === 0,
     ...(product !== undefined ? { product } : {}),
     problems,
-    env: { url: url ? url.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(anon), serviceKey: shape(service), siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "missing" },
+    env: { url: url ? url.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(anon), serviceKey: shape(service), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL") || "missing" },
+    browser,
     supabase: { auth, database: db },
   });
 }
