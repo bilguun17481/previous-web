@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { currentStaff } from "@/lib/staff";
+import { currentStaff, staffDiagnosis } from "@/lib/staff";
 import { providers } from "@/lib/payments";
 import { carriers } from "@/lib/shipping";
 import { publicEnv } from "@/lib/env";
 
 /** Staff only: which gateways and carriers have server-side credentials. Never returns the keys. */
 export async function GET() {
-  if (!(await currentStaff())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await currentStaff())) return NextResponse.json({ error: "unauthorized", reason: await staffDiagnosis() }, { status: 401 });
   return NextResponse.json({
     payments: Object.fromEntries(Object.values(providers).map((p) => [p.id, p.configured])),
     carriers: Object.fromEntries(Object.values(carriers).map((c) => [c.id, { configured: c.configured, capability: c.capability }])),
