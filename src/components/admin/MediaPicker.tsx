@@ -25,7 +25,7 @@ export function MediaPicker({ value, onChange, accept = "image/*,video/*", allow
       <div className="flex flex-wrap items-center gap-2">
         {value?.url ? (
           <div className="flex items-center gap-3 rounded-md border border-hair p-2">
-            {value.kind === "image" ? <SmartImg src={value.url} size="thumb" className="h-14 w-20 rounded object-cover" /> : <div className="flex h-14 w-20 items-center justify-center rounded bg-ink text-[10px] uppercase text-paper">{value.kind}</div>}
+            {value.kind === "image" ? <SmartImg src={value.url} size="thumb" className="h-14 w-20 rounded object-cover" onError={(e) => { const el = e.currentTarget; el.style.outline = "2px solid #d0021b"; el.title = "Soubor se nepodařilo načíst / file failed to load"; }} /> : <div className="flex h-14 w-20 items-center justify-center rounded bg-ink text-[10px] uppercase text-paper">{value.kind}</div>}
             <span className="max-w-[240px] truncate text-[12px] text-mute">{value.url}</span>
             <Button variant="ghost" type="button" onClick={() => onChange(undefined)}>{t(adm.common.remove)}</Button>
           </div>

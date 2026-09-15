@@ -49,6 +49,26 @@ export async function GET(req: Request) {
       } catch (e) { (product as Record<string, unknown>).page = `error: ${(e as Error).message}`; }
     }
   }
+  // ?page=<slug>: check every picture and video a builder page points at.
+  const pageSlug = new URL(req.url).searchParams.get("page");
+  let page: unknown = undefined;
+  if (pageSlug && url && anon) {
+    const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/pages?select=slug,status,sections&slug=eq.${encodeURIComponent(pageSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
+    const rows = (await r.json()) as { slug: string; status: string; sections: Record<string, unknown>[] }[];
+    if (!rows[0]) page = "not found (or not published)";
+    else {
+      const media: Record<string, unknown>[] = [];
+      for (const sec of rows[0].sections) {
+        for (const key of ["media", "video"]) {
+          const m = sec[key] as { kind?: string; url?: string } | undefined;
+          if (!m?.url) { if (m) media.push({ section: sec.id, type: sec.type, field: key, url: "(empty)" }); continue; }
+          const head = await fetch(m.url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(8000) }).catch((e: Error) => ({ status: 0, headers: new Headers(), error: e.message }));
+          media.push({ section: sec.id, type: sec.type, field: key, kind: m.kind, url: m.url, status: head.status, contentType: head.headers.get("content-type"), ...("error" in head ? { error: head.error } : {}), problem: head.status !== 200 ? "file does not answer: re-pick the picture in the page editor" : !/^image\/(jpeg|png|webp|gif|avif|svg)/.test(head.headers.get("content-type") ?? "") && m.kind === "image" ? "not a browser-displayable image type (HEIC/TIFF?): convert to JPEG and upload again" : "ok" });
+        }
+      }
+      page = { slug: rows[0].slug, status: rows[0].status, sections: rows[0].sections.length, media };
+    }
+  }
   // What the browser receives: the root layout injects window.__ENV__ into every page from the runtime environment.
   let browser: Record<string, unknown> = {};
   try {
@@ -66,6 +86,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: problems.length === 0,
     ...(product !== undefined ? { product } : {}),
+    ...(page !== undefined ? { page } : {}),
     problems,
     env: { url: url ? url.replace(/[a-z0-9]/gi, (c, i) => (i < 12 ? c : "•")) : "missing", anonKey: shape(anon), serviceKey: shape(service), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL") || "missing" },
     stripe: { secretKey: stripeKey(process.env.STRIPE_SECRET_KEY), webhookSecret: (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim().startsWith("whsec_") ? "set" : (process.env.STRIPE_WEBHOOK_SECRET ?? "").trim() ? "unrecognised" : "missing", webhookUrl: `${(publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "")}/api/webhooks/stripe/` },
