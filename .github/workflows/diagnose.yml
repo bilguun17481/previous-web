@@ -1,0 +1,28 @@
+name: Diagnose live site
+# Reads the shop's own health endpoint from GitHub's network (the development sandbox cannot reach the site).
+# Prints only what /api/health already exposes publicly: masked settings and per-page media checks.
+on:
+  workflow_dispatch:
+    inputs:
+      page:
+        description: "Builder page slug to check (e.g. -atv)"
+        default: "-atv"
+      product:
+        description: "Product slug to check"
+        default: "cfmoto-gladiator-c4-g4"
+  push:
+    branches: [claude/ecommerce-website-design-bv748b]
+    paths: [".github/workflows/diagnose.yml"]
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health
+        run: |
+          set -x
+          curl -sS --max-time 30 "https://motodvorak.bilguun17481.workers.dev/api/health/?page=${{ github.event.inputs.page || '-atv' }}" | python3 -m json.tool
+          curl -sS --max-time 30 "https://motodvorak.bilguun17481.workers.dev/api/health/?product=${{ github.event.inputs.product || 'cfmoto-gladiator-c4-g4' }}" | python3 -m json.tool
+      - name: Page HTML images
+        run: |
+          curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o '<img[^>]*>' | head -20 || true
+          curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o 'src="[^"]*"' | sort -u | head -40 || true
