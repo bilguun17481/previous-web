@@ -48,6 +48,10 @@ Tables: `changesets`, `changeset_items` (migration `0003_sandbox.sql`). Code: `s
 
 Admin → Obsah → Stránky. The editor shows a live preview (an iframe at desktop or phone width, so breakpoints behave like the real site), a section list on the left (drag to reorder, hide, duplicate) and an inspector on the right with three tabs: Obsah (texts, media, links), Vzhled (height, alignment, free text placement over hero and banner photos by dragging in the preview, overlay, background and text colours, padding, columns, button style) and Písmo (font, size, weight, colour, spacing, uppercase, shadow for every text element; fonts load from Google Fonts on demand, see `src/lib/fonts.ts`). Undo/redo with Ctrl+Z / Ctrl+Shift+Z, save with Ctrl+S. Sections render through `src/components/Sections.tsx`; the preview frame is `src/app/admin/preview/`.
 
+## Carriers
+
+`src/lib/shipping/catalog.ts` lists every carrier the shop can offer (Zásilkovna, Česká pošta, Balíkovna, PPL, DPD, GLS, One by Allegro, AlzaBox, DoDo, Liftago, Messenger, Toptrans, FOFR, Geis, Raben, Dachser, Gebrüder Weiss, DB Schenker, Packeta SK, Slovenská pošta, SPS, 123Kuriér, DHL Express, UPS, FedEx, InPost, Magyar Posta, Pošta bez hranic). The registry in `src/lib/shipping/index.ts` connects each one by the best route available at runtime: its own API (Packeta, PPL, GLS verified; Česká pošta, DPD, One by Allegro written from public docs and marked unverified), then Balíkobot (`BALIKOBOT_API_USER` + `BALIKOBOT_API_KEY` give every catalogue carrier a label route), then Zásilkovna's external carriers, and finally manual entry with a tracking link. Admin → Nastavení → Doprava shows the overview with the route in use and the variables each direct connection needs, and adds a shipping method for any carrier in one click.
+
 ## Stripe
 
 Card payments use Stripe Checkout (Stripe's hosted payment page). The shop creates a Checkout Session for the order, sends the customer to Stripe, and marks the order paid when Stripe's webhook arrives.

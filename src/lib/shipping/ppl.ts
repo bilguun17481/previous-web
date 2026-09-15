@@ -1,11 +1,11 @@
-import type { Carrier } from "./index";
+import type { Order } from "@/lib/types";
+import type { Shipment } from "./index";
 import { splitName } from "./index";
-/* PPL myAPI2. Docs: https://ppl-cz.github.io/myapi2 — credentials from PPL customer support. */
-const clientId = process.env.PPL_CLIENT_ID;
-const clientSecret = process.env.PPL_CLIENT_SECRET;
+/* PPL myAPI2 (CPL API). Docs: https://ppl-cpl-api.apidog.io — credentials from PPL customer support. */
 const base = "https://api.dhl.com/ecs/ppl/myapi2";
 
 async function token() {
+  const clientId = process.env.PPL_CLIENT_ID; const clientSecret = process.env.PPL_CLIENT_SECRET;
   const r = await fetch("https://api.dhl.com/ecs/ppl/myapi2/login/getAccessToken", {
     method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ grant_type: "client_credentials", client_id: clientId!, client_secret: clientSecret!, scope: "myapi2" }),
@@ -13,12 +13,7 @@ async function token() {
   return (await r.json()).access_token as string;
 }
 
-export const ppl: Carrier = {
-  id: "ppl",
-  label: "PPL",
-  configured: Boolean(clientId && clientSecret),
-  capability: "api",
-  async createShipment(order) {
+export async function pplShipment(order: Order): Promise<Shipment> {
     const t = await token();
     const { first, last } = splitName(order.customer_name);
     const a = order.shipping_address ?? {};
@@ -28,7 +23,8 @@ export const ppl: Carrier = {
         returnChannel: { type: "None" },
         labelSettings: { format: "Pdf", dpi: 300, completeLabelSettings: { isCompleteLabelRequested: true, pageSize: "A4", position: 1 } },
         shipments: [{
-          referenceId: String(order.number), productType: "BUSD",
+          referenceId: String(order.number), productType: (order.pickup_point as { id?: string } | null)?.id ? "SMAR" : "BUSD",
+          ...((order.pickup_point as { id?: string } | null)?.id ? { specificDelivery: { parcelShopCode: String((order.pickup_point as { id: string }).id) } } : {}),
           recipient: { name: `${first} ${last}`, street: a.street, city: a.city, zipCode: a.zip, country: "CZ", email: order.customer_email, phone: order.phone },
           shipmentSet: { numberOfShipments: 1 },
           ...(order.payment_status !== "paid" ? { cashOnDelivery: { codPrice: order.total, codCurrency: order.currency, codVarSym: String(order.number) } } : {}),
@@ -47,6 +43,4 @@ export const ppl: Carrier = {
       if (item?.importState === "Error") throw new Error(`PPL: ${JSON.stringify(item.errorMessage)}`);
     }
     throw new Error("PPL: label not ready, retry from the order page");
-  },
-  trackingUrl: (n) => `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${encodeURIComponent(n)}`,
-};
+}

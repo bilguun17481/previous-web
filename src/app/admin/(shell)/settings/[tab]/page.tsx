@@ -3,13 +3,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
+import { CARRIERS, GROUP_LABEL, SERVICE_LABEL, carrierDef } from "@/lib/shipping/catalog";
 import { repo, type Profile } from "@/lib/admin/repo";
 import { Badge, Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useAsync, useT, useToast } from "@/components/admin/ui";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import type { PaymentMethod, ShippingMethod, StoreSettings, Text } from "@/lib/types";
 
-type Status = { payments: Record<string, boolean>; carriers: Record<string, { configured: boolean; capability: string }>; email: boolean; packetaWidget: boolean; siteUrl: string | null };
+type CarrierStatus = { configured: boolean; capability: string; route: "direct" | "balikobot" | "packeta" | "manual"; beta: boolean; label: string; group: string; services: string[]; env: string[] };
+type Status = { payments: Record<string, boolean>; carriers: Record<string, CarrierStatus>; balikobot: boolean; email: boolean; packetaWidget: boolean; siteUrl: string | null };
 const tabs = ["general", "payments", "shipping", "taxes", "notifications", "theme", "team", "connections", "domains"] as const;
 
 export default function Settings() {
@@ -113,14 +115,14 @@ function Payments() {
 function Shipping() {
   const { t } = useT(); const toast = useToast(); const status = useStatus(); const s = adm.settings.ship;
   const { data, setData, reload } = useAsync(() => repo().shipping.list());
-  const carriers = ["dealer", "packeta", "ppl", "dpd", "ceska_posta", "gls", "fofr"];
+  const [showConn, setShowConn] = useState(true);
   const blank: ShippingMethod = { id: "", carrier: "packeta", name: { cs: "", en: "" }, description: { cs: "", en: "" }, price: 0, free_over: null, enabled: true, needs_pickup_point: false, vehicles: false, sort: (data?.length ?? 0) + 1 };
   const [draft, setDraft] = useState<ShippingMethod | null>(null);
   const upd = (i: number, p: Partial<ShippingMethod>) => setData((data ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)));
   const Form = ({ m, onChange }: { m: ShippingMethod; onChange: (m: ShippingMethod) => void }) => (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field label={t(s.id)}><Input value={m.id} onChange={(e) => onChange({ ...m, id: e.target.value.toLowerCase().replace(/[^a-z0-9_]+/g, "_") })} disabled={Boolean(data?.some((x) => x.id === m.id && x !== m))} /></Field>
-      <Field label={t(s.carrier)}><Select value={m.carrier} onChange={(e) => onChange({ ...m, carrier: e.target.value })}>{carriers.map((c) => <option key={c} value={c}>{c}</option>)}</Select></Field>
+      <Field label={t(s.carrier)}><Select value={m.carrier} onChange={(e) => onChange({ ...m, carrier: e.target.value, needs_pickup_point: m.needs_pickup_point || Boolean(carrierDef(e.target.value)?.services.includes("pickup") && !carrierDef(e.target.value)?.services.includes("address")) })}>{CARRIERS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</Select></Field>
       <div className="sm:col-span-2"><TextField label={t(adm.common.name)} value={m.name} onChange={(v) => onChange({ ...m, name: v })} /></div>
       <div className="sm:col-span-2"><TextField label={t(adm.pages.f.text)} value={m.description} onChange={(v) => onChange({ ...m, description: v })} /></div>
       <Field label={t(adm.common.price) + " (Kč)"}><Input type="number" value={m.price} onChange={(e) => onChange({ ...m, price: Number(e.target.value) })} /></Field>
@@ -132,9 +134,43 @@ function Shipping() {
       </div>
     </div>
   );
+  const routeTone = (r: CarrierStatus["route"]) => (r === "direct" ? "green" : r === "balikobot" ? "blue" : r === "packeta" ? "blue" : "neutral");
   return (
     <div className="space-y-4">
-      <div className="flex justify-end"><Button onClick={() => setDraft(blank)}>{t(s.new)}</Button></div>
+      <p className="text-[13px] text-mute">{t(s.connHint)}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button onClick={() => setShowConn(!showConn)} className="text-[12px] text-mute underline underline-offset-4 hover:text-ink">{showConn ? t(s.hideConn) : t(s.showConn)}</button>
+        <Button onClick={() => setDraft(blank)}>{t(s.new)}</Button>
+      </div>
+      {showConn && (
+        <Card title={t(s.connections)} actions={status && <Badge tone={status.balikobot ? "green" : "neutral"}>Balíkobot: {status.balikobot ? "OK" : "—"}</Badge>}>
+          <StatusProblem status={status} />
+          {status && (Object.keys(GROUP_LABEL) as (keyof typeof GROUP_LABEL)[]).map((g) => {
+            const list = CARRIERS.filter((c) => c.group === g);
+            if (!list.length) return null;
+            return (
+              <div key={g} className="mb-4 last:mb-0">
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-mute">{t(GROUP_LABEL[g])}</div>
+                <div className="divide-y divide-hair rounded-md border border-hair">
+                  {list.map((c) => {
+                    const st = status.carriers[c.id];
+                    return (
+                      <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[13px]">
+                        <div className="min-w-[200px] flex-1"><div className="font-medium">{c.label}</div><div className="text-[11px] text-mute">{t(c.note)}</div></div>
+                        <div className="flex flex-wrap gap-1">{c.services.map((sv) => <span key={sv} className="rounded bg-tile px-1.5 py-0.5 text-[10px] text-mute">{t(SERVICE_LABEL[sv])}</span>)}</div>
+                        {st && (st.configured
+                          ? <Badge tone={routeTone(st.route)}>{t(s.routes[st.route])}{st.beta ? ` · ${t(s.beta)}` : ""}</Badge>
+                          : c.id === "dealer" ? null : <span className="text-[11px] text-mute" title={(c.env ?? []).join(", ")}>{t(s.routes.manual)}{c.env?.length ? ` · ${t(s.needs)}: ${c.env.join(", ")}` : c.balikobot ? " · Balíkobot" : ""}</span>)}
+                        <Button variant="ghost" onClick={() => setDraft({ ...blank, id: c.id, carrier: c.id, name: { cs: c.label, en: c.label }, needs_pickup_point: c.services.includes("pickup") && !c.services.includes("address"), vehicles: c.services.includes("pallet") })}>{t(s.addMethod)}</Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
       {draft && <Card title={t(s.new)} actions={<div className="flex gap-2"><Button variant="secondary" onClick={() => setDraft(null)}>{t(adm.common.cancel)}</Button><Button disabled={!draft.id} onClick={async () => { await repo().shipping.save(draft); setDraft(null); toast(t(adm.common.saved)); reload(); }}>{t(adm.common.save)}</Button></div>}><Form m={draft} onChange={setDraft} /></Card>}
       <div className="grid gap-4 lg:grid-cols-2">
         {(data ?? []).map((m, i) => {

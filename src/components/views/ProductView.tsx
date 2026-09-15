@@ -48,8 +48,8 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
         <div>
           <div className="relative select-none" onTouchStart={(e) => (touchX.current = e.touches[0].clientX)} onTouchEnd={(e) => { if (touchX.current === null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); touchX.current = null; }}>
             {cur.kind === "video"
-              ? <div className="aspect-square bg-ink sm:aspect-[4/3]"><Video video={cur.video} className="h-full w-full" /></div>
-              : <Photo label={p.name} src={cur.url} priority ratio="aspect-square sm:aspect-[4/3]" hint={`${p.brand} ${p.name}`} />}
+              ? <div className="aspect-square bg-ink sm:aspect-[3/2]"><Video video={cur.video} className="h-full w-full" /></div>
+              : <Photo label={p.name} src={cur.url} priority fit="cover" ratio="aspect-square sm:aspect-[3/2]" hint={`${p.brand} ${p.name}`} />}
             {p.tags && (
               <div className="absolute left-4 top-4 flex gap-1.5">
                 {p.tags.map((tag) => <span key={tag} className={`px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] leading-none ${tag === "sale" ? "bg-signal text-paper" : "bg-ink text-paper"}`}>{t(dict.catalog[tag])}</span>)}
@@ -70,10 +70,10 @@ export function ProductView({ p, category: cat, related }: { p: ShopProduct; cat
           {slides.length > 1 && (
             <div ref={stripRef} className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]">
               {slides.map((s, i) => (
-                <button key={i} onClick={() => setActive(i)} aria-pressed={active === i} className={`relative w-[22%] shrink-0 border sm:w-[18%] ${active === i ? "border-ink" : "border-transparent hover:border-hair"}`}>
+                <button key={i} onClick={() => setActive(i)} aria-pressed={active === i} className={`relative w-[22%] shrink-0 overflow-hidden transition-opacity sm:w-[18%] ${active === i ? "opacity-100 ring-2 ring-inset ring-ink" : "opacity-55 hover:opacity-100"}`}>
                   {s.kind === "video"
                     ? <div className="flex aspect-[4/3] items-center justify-center bg-ink text-paper"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></div>
-                    : <Photo label={`${p.name} ${s.label}`} src={s.url} size="thumb" ratio="aspect-[4/3]" hint={s.label} />}
+                    : <Photo label={`${p.name} ${s.label}`} src={s.url} size="thumb" fit="cover" ratio="aspect-[4/3]" hint={s.label} />}
                 </button>
               ))}
             </div>

@@ -80,11 +80,29 @@ export default function Media() {
   };
 
   /* ── product links follow moved files ── */
+  /** After files move, point everything that referenced the old address at the new one:
+      product photos and colour photos, page sections (hero, banner, split, video, poster), category tiles. */
   const relink = async (pairs: { from: string; to: string }[]) => {
     const changed = pairs.filter((p) => p.from !== p.to); if (!changed.length) return;
+    const map = new Map(changed.map((c) => [c.from, c.to]));
+    const swap = (u: unknown) => (typeof u === "string" && map.has(u) ? map.get(u)! : u);
     for (const p of products) {
-      if (!p.images?.some((i) => changed.some((c) => c.from === i.url))) continue;
-      await repo().products.save({ ...p, images: p.images.map((i) => ({ ...i, url: changed.find((c) => c.from === i.url)?.to ?? i.url })) });
+      const images = p.images?.map((i) => ({ ...i, url: swap(i.url) as string }));
+      const colors = p.colors?.map((c) => (typeof c === "string" ? c : { ...c, image: swap(c.image) as string | undefined }));
+      const hit = p.images?.some((i) => map.has(i.url)) || p.colors?.some((c) => typeof c !== "string" && c.image && map.has(c.image));
+      if (hit) await repo().products.save({ ...p, images, colors: colors as typeof p.colors });
+    }
+    for (const pg of await repo().pages.list()) {
+      let hit = false;
+      const sections = pg.sections.map((s) => {
+        const n = JSON.parse(JSON.stringify(s)) as Record<string, unknown>;
+        for (const key of ["media", "video"]) { const m = n[key] as { url?: string; poster?: string } | undefined; if (m?.url && map.has(m.url)) { m.url = map.get(m.url)!; hit = true; } if (m?.poster && map.has(m.poster)) { m.poster = map.get(m.poster)!; hit = true; } }
+        return n as unknown as typeof s;
+      });
+      if (hit) await repo().pages.save({ ...pg, sections });
+    }
+    for (const c of await repo().categories.list()) {
+      if ((c.image_url && map.has(c.image_url)) || (c.video_url && map.has(c.video_url))) await repo().categories.save({ ...c, image_url: swap(c.image_url) as string | null, video_url: swap(c.video_url) as string | null });
     }
   };
 

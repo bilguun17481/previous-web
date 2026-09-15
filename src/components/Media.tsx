@@ -1,6 +1,7 @@
 "use client";
 import type { MediaRef, ProductVideo } from "@/lib/types";
 import type { Size } from "@/lib/mediaVariants";
+import { useEffect, useState } from "react";
 import { useResolvedSrc } from "./SmartImg";
 
 const ytId = (u: string) => u.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{6,})/)?.[1];
@@ -25,13 +26,16 @@ export function Video({ video, className = "", autoplay = false, muted = autopla
 }
 
 /** Full-bleed background media for hero and banner sections. */
-function BackgroundImage({ url, alt, size }: { url: string; alt: string; size: Size }) {
+function BackgroundImage({ url, alt, size, fallback }: { url: string; alt: string; size: Size; fallback: React.ReactNode }) {
   const src = useResolvedSrc(url, size);
-  return <img src={src} alt={alt} loading={size === "full" ? "eager" : "lazy"} decoding="async" className="absolute inset-0 h-full w-full object-cover" />;
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [src]);
+  if (broken) return <>{fallback}</>;
+  return <img src={src} alt={alt} loading={size === "full" ? "eager" : "lazy"} decoding="async" onError={() => setBroken(true)} className="absolute inset-0 h-full w-full object-cover" />;
 }
 
 export function BackgroundMedia({ media, fallback, size = "full" }: { media?: MediaRef; fallback: React.ReactNode; size?: Size }) {
   if (!media?.url) return <>{fallback}</>;
-  if (media.kind === "image") return <BackgroundImage url={media.url} alt={media.alt ?? ""} size={size} />;
+  if (media.kind === "image") return <BackgroundImage url={media.url} alt={media.alt ?? ""} size={size} fallback={fallback} />;
   return <Video video={media} autoplay className="absolute inset-0 h-full w-full object-cover" poster={media.poster} />;
 }

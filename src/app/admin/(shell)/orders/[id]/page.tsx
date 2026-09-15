@@ -6,11 +6,7 @@ import { repo } from "@/lib/admin/repo";
 import { Badge, Button, Card, dateTime, Field, Input, money, PageHeader, Textarea, useAsync, useT, useToast } from "@/components/admin/ui";
 import type { Order } from "@/lib/types";
 import { SmartImg } from "@/components/SmartImg";
-
-const trackingUrls: Record<string, (n: string) => string> = {
-  packeta: (n) => `https://tracking.packeta.com/cs/?id=${n}`, ppl: (n) => `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${n}`, dpd: (n) => `https://tracking.dpd.de/status/cs_CZ/parcel/${n}`,
-  ceska_posta: (n) => `https://www.postaonline.cz/trackandtrace/-/zasilka/cislo?parcelNumbers=${n}`, gls: (n) => `https://gls-group.eu/CZ/cs/sledovani-zasilek?match=${n}`, fofr: (n) => `https://www.fofr.cz/sledovani-zasilky/?cislo=${n}`,
-};
+import { carrierDef, trackingUrlFor } from "@/lib/shipping/catalog";
 
 export default function OrderDetail() {
   const { t } = useT();
@@ -45,7 +41,7 @@ export default function OrderDetail() {
   };
   const tone = (s: string) => (s === "paid" || s === "fulfilled" ? "green" : s === "pending" || s === "processing" ? "amber" : "red");
   const tn = tracking ?? o.tracking_number ?? "";
-  const turl = o.shipping_carrier && tn && trackingUrls[o.shipping_carrier]?.(tn);
+  const turl = o.shipping_carrier && tn ? trackingUrlFor(o.shipping_carrier, tn) : "";
   const addr = o.shipping_address ?? {};
 
   return (
@@ -70,7 +66,7 @@ export default function OrderDetail() {
           </Card>
           <Card title={t(adm.orders.shipping)}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="text-[13px]"><div className="text-[11px] uppercase tracking-[0.08em] text-mute">{t(adm.orders.address)}</div>{o.pickup_point ? <div className="mt-1"><span className="text-mute">{t(adm.orders.pickup)}:</span> {String((o.pickup_point as { name?: string }).name ?? "")}</div> : <div className="mt-1">{addr.street}<br />{addr.zip} {addr.city}</div>}<div className="mt-2 text-mute">{o.shipping_carrier}</div></div>
+              <div className="text-[13px]"><div className="text-[11px] uppercase tracking-[0.08em] text-mute">{t(adm.orders.address)}</div>{o.pickup_point ? <div className="mt-1"><span className="text-mute">{t(adm.orders.pickup)}:</span> {String((o.pickup_point as { name?: string }).name ?? "")}</div> : <div className="mt-1">{addr.street}<br />{addr.zip} {addr.city}</div>}<div className="mt-2 text-mute">{(o.shipping_carrier && carrierDef(o.shipping_carrier)?.label) || o.shipping_carrier}</div></div>
               <div>
                 <Field label={t(adm.orders.tracking)}><Input value={tn} onChange={(e) => setTracking(e.target.value)} /></Field>
                 <div className="mt-2 flex flex-wrap gap-2">
