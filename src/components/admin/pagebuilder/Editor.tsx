@@ -28,6 +28,11 @@ export function Editor({ slug }: { slug: string }) {
   const [device, setDevice] = useState<keyof typeof DEVICES>("desktop");
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showList, setShowList] = useState(true);
+  const [showPanel, setShowPanel] = useState(true);
+  useEffect(() => { try { setShowList(localStorage.getItem("md-editor-list") !== "hidden"); setShowPanel(localStorage.getItem("md-editor-panel") !== "hidden"); } catch {} }, []);
+  const toggleList = () => { const v = !showList; setShowList(v); try { localStorage.setItem("md-editor-list", v ? "shown" : "hidden"); } catch {} };
+  const togglePanel = () => { const v = !showPanel; setShowPanel(v); try { localStorage.setItem("md-editor-panel", v ? "shown" : "hidden"); } catch {} };
   const page = hist[hi] ?? null;
   const dirty = page !== null && page !== savedAt;
   const coalesce = useRef<{ key: string; at: number } | null>(null);
@@ -87,7 +92,7 @@ export function Editor({ slug }: { slug: string }) {
       const m = e.data; if (!m || typeof m !== "object" || !("type" in m)) return;
       if (m.type === "md-preview-ready") setReady(true);
       else if (m.type === "md-preview-height") setFrameH(Math.max(300, m.height));
-      else if (m.type === "md-preview-select") { setSelected(m.id); }
+      else if (m.type === "md-preview-select") { setSelected(m.id); setShowPanel(true); }
       else if (m.type === "md-preview-change") patchSection(m.id, m.patch, `box:${m.id}`);
     };
     window.addEventListener("message", onMsg); return () => window.removeEventListener("message", onMsg);
@@ -111,6 +116,7 @@ export function Editor({ slug }: { slug: string }) {
     <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col md:-m-6 lg:-m-8">
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-hair bg-paper px-4 py-2">
+        <button onClick={toggleList} title={showList ? t(p.hideList) : t(p.showList)} className={`hidden h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile md:inline-flex ${showList ? "" : "text-mute"}`} aria-pressed={showList}>☰</button>
         <Link href="/admin/content/pages/" className="text-[12px] text-mute hover:text-ink">← {t(p.title)}</Link>
         <span className="text-[14px] font-semibold">{t(page.title) || page.slug}</span>
         <span className="font-mono text-[11px] text-mute">{href}</span>
@@ -126,12 +132,13 @@ export function Editor({ slug }: { slug: string }) {
           <a href={href} target="_blank" className="inline-flex h-9 items-center rounded-md border border-hair px-3 text-[13px] hover:bg-tile">{t(p.preview)}</a>
           {page.status === "published" ? <Button variant="secondary" disabled={busy} onClick={() => save("draft")}>{t(p.unpublish)}</Button> : <Button variant="secondary" disabled={busy} onClick={() => save("published")}>{t(p.publish)}</Button>}
           <Button disabled={busy || !dirty} onClick={() => save()}>{t(p.saveTo)}</Button>
+          <button onClick={togglePanel} title={showPanel ? t(p.hidePanel) : t(p.showPanel)} className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile ${showPanel ? "" : "text-mute"}`} aria-pressed={showPanel}>⚙</button>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
         {/* section list */}
-        <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-hair bg-paper p-2 md:block">
+        <aside className={`w-60 shrink-0 overflow-y-auto border-r border-hair bg-paper p-2 ${showList ? "hidden md:block" : "hidden"}`}>
           <div className="mb-1 flex items-center justify-between px-1"><span className="text-[11px] font-semibold uppercase tracking-wide text-mute">{t(p.sections)}</span><button onClick={() => setAdding(!adding)} className="rounded-md border border-hair px-2 py-0.5 text-[12px] hover:bg-tile">+ {t(adm.common.add)}</button></div>
           {adding && (
             <div className="mb-2 grid gap-1 rounded-md border border-hair bg-[#f6f6f4] p-1.5">
@@ -164,7 +171,8 @@ export function Editor({ slug }: { slug: string }) {
         </div>
 
         {/* inspector */}
-        <aside className="w-[340px] shrink-0 overflow-y-auto border-l border-hair bg-paper">
+        {!showPanel && <button onClick={togglePanel} title={t(p.showPanel)} className="flex w-7 shrink-0 items-start justify-center border-l border-hair bg-paper pt-3 text-[12px] text-mute hover:bg-tile hover:text-ink">‹</button>}
+        <aside className={`w-[340px] shrink-0 overflow-y-auto border-l border-hair bg-paper ${showPanel ? "" : "hidden"}`}>
           {sel ? (<>
             <div className="sticky top-0 z-10 border-b border-hair bg-paper px-3 pt-2">
               <div className="flex items-center justify-between"><span className="text-[13px] font-semibold">{t(p.types[sel.type])}</span>

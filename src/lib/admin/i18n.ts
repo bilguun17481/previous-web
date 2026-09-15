@@ -5,6 +5,7 @@ export const adm = {
     discounts: { cs: "Slevy", en: "Discounts" }, content: { cs: "Obsah", en: "Content" }, pages: { cs: "Stránky", en: "Pages" }, media: { cs: "Média", en: "Media" }, categories: { cs: "Kategorie", en: "Categories" },
     analytics: { cs: "Analytika", en: "Analytics" }, sandbox: { cs: "Sandbox", en: "Sandbox" }, settings: { cs: "Nastavení", en: "Settings" }, viewStore: { cs: "Zobrazit obchod", en: "View store" }, logout: { cs: "Odhlásit", en: "Log out" },
     search: { cs: "Hledat objednávky, produkty, zákazníky…", en: "Search orders, products, customers…" },
+    hideMenu: { cs: "Skrýt menu", en: "Hide menu" }, showMenu: { cs: "Zobrazit menu", en: "Show menu" },
   },
   common: {
     save: { cs: "Uložit", en: "Save" }, saved: { cs: "Uloženo", en: "Saved" }, cancel: { cs: "Zrušit", en: "Cancel" }, delete: { cs: "Smazat", en: "Delete" }, add: { cs: "Přidat", en: "Add" }, edit: { cs: "Upravit", en: "Edit" },
@@ -65,6 +66,7 @@ export const adm = {
     slug: { cs: "Adresa stránky", en: "Page slug" }, seo: { cs: "SEO", en: "SEO" },
     // editor
     tabs: { content: { cs: "Obsah", en: "Content" }, look: { cs: "Vzhled", en: "Layout" }, type: { cs: "Písmo", en: "Type" }, page: { cs: "Stránka", en: "Page" } },
+    showList: { cs: "Zobrazit seznam sekcí", en: "Show section list" }, hideList: { cs: "Skrýt seznam sekcí", en: "Hide section list" }, showPanel: { cs: "Zobrazit panel vlastností", en: "Show properties panel" }, hidePanel: { cs: "Skrýt panel vlastností", en: "Hide properties panel" },
     undo: { cs: "Zpět", en: "Undo" }, redo: { cs: "Znovu", en: "Redo" }, unsaved: { cs: "Neuložené změny", en: "Unsaved changes" }, desktop: { cs: "Počítač", en: "Desktop" }, mobile: { cs: "Telefon", en: "Phone" },
     selectHint: { cs: "Klikněte na sekci v náhledu nebo v seznamu vlevo.", en: "Click a section in the preview or in the list on the left." },
     duplicate: { cs: "Duplikovat", en: "Duplicate" }, hide: { cs: "Skrýt na webu", en: "Hide on site" }, show: { cs: "Zobrazit na webu", en: "Show on site" }, hiddenBadge: { cs: "skryto", en: "hidden" },

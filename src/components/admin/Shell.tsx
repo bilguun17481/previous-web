@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { useLang } from "@/lib/i18n";
@@ -22,7 +22,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { lang, setLang } = useLang();
   const pathname = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);          // phone drawer
+  const [collapsed, setCollapsed] = useState(false); // desktop sidebar hidden
+  useEffect(() => { try { setCollapsed(localStorage.getItem("md-admin-nav") === "hidden"); } catch {} }, []);
+  const toggleNav = () => { if (window.innerWidth < 1024) { setOpen(!open); return; } const c = !collapsed; setCollapsed(c); try { localStorage.setItem("md-admin-nav", c ? "hidden" : "shown"); } catch {} };
   const sandbox = useActiveSandbox();
   const nav = [
     { href: "/admin/", key: "home", icon: I.home }, { href: "/admin/orders/", key: "orders", icon: I.orders }, { href: "/admin/products/", key: "products", icon: I.products },
@@ -37,7 +40,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <ToastProvider>
       <div className="min-h-screen bg-[#f6f6f4] text-ink">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-hair bg-paper px-4">
-          <button className="lg:hidden" onClick={() => setOpen(!open)} aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7h18M3 12h18M3 17h18" /></svg></button>
+          <button onClick={toggleNav} aria-label="Menu" title={collapsed ? t(adm.nav.showMenu) : t(adm.nav.hideMenu)} className="rounded-md p-1 hover:bg-tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7h18M3 12h18M3 17h18" /></svg></button>
           <Link href="/admin/" className="text-[15px] font-extrabold uppercase tracking-[-0.03em]">Moto Dvořák <span className="ml-1 rounded bg-tile px-1.5 py-0.5 text-[10px] font-semibold tracking-normal text-mute">ADMIN</span></Link>
           <div className="hidden flex-1 md:block"><input placeholder={t(adm.nav.search)} className="h-8 w-full max-w-md rounded-md border border-hair bg-[#f6f6f4] px-3 text-[13px] outline-none focus:border-ink" onKeyDown={(e) => { if (e.key === "Enter") router.push(`/admin/orders/?q=${encodeURIComponent((e.target as HTMLInputElement).value)}`); }} /></div>
           <div className="ml-auto flex items-center gap-3 text-[12px]">
@@ -50,7 +53,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <div className="flex">
-          <aside className={`${open ? "block" : "hidden"} fixed inset-y-14 left-0 z-20 w-56 shrink-0 border-r border-hair bg-paper p-3 lg:static lg:block lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-14`}>
+          <aside className={`${open ? "block" : "hidden"} fixed inset-y-14 left-0 z-20 w-56 shrink-0 border-r border-hair bg-paper p-3 lg:static lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-14 ${collapsed ? "lg:hidden" : "lg:block"}`}>
             <nav className="space-y-0.5">
               {nav.map((n) => (
                 <div key={n.key}>
