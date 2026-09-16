@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
+import { ColorField } from "@/components/admin/pagebuilder/Typography";
 import { DEFAULT_LOGO, Logo } from "@/components/Logo";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import { FONTS } from "@/lib/fonts";
@@ -63,7 +64,7 @@ function StatusProblem({ status }: { status: Status | null }) {
 function General() {
   const { t } = useT(); const s = adm.settings.store;
   const { v, setV } = useSetting<StoreSettings>("store", { name: "", legal: "", address: "", phone: "", email: "", ico: "", dic: "", hours: { cs: "", en: "" }, currency: "CZK", locales: ["cs", "en"], defaultLocale: "cs" });
-  const { v: ann, setV: setAnn } = useSetting<{ enabled: boolean; text: Text }>("announcement", { enabled: true, text: { cs: "", en: "" } });
+  const { v: ann, setV: setAnn } = useSetting<{ enabled: boolean; text: Text; bg?: string; color?: string; href?: string; size?: number }>("announcement", { enabled: true, text: { cs: "", en: "" } });
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title={t(adm.settings.tabs.general)} actions={<SaveBar onSave={() => repo().settings.set("store", v)} />}>
@@ -81,6 +82,13 @@ function General() {
       <Card title={t(s.announcement)} actions={<SaveBar onSave={() => repo().settings.set("announcement", ann)} />}>
         <Toggle checked={ann.enabled} onChange={(x) => setAnn({ ...ann, enabled: x })} label={t(adm.common.enabled)} />
         <div className="mt-3"><TextField label={t(adm.pages.f.text)} value={ann.text} onChange={(x) => setAnn({ ...ann, text: x })} /></div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <ColorField label={t(adm.pages.bg)} value={ann.bg} onChange={(c) => setAnn({ ...ann, bg: c })} />
+          <ColorField label={t(adm.pages.color)} value={ann.color} onChange={(c) => setAnn({ ...ann, color: c })} />
+          <Field label={t(adm.pages.ts.size)}><Input type="number" min={9} max={20} value={ann.size ?? ""} placeholder="11" onChange={(e) => setAnn({ ...ann, size: e.target.value ? Number(e.target.value) : undefined })} /></Field>
+        </div>
+        <div className="mt-3"><Field label={t(adm.settings.annLink)} hint={t(adm.settings.annLinkHint)}><Input value={ann.href ?? ""} placeholder="/akce/" onChange={(e) => setAnn({ ...ann, href: e.target.value || undefined })} /></Field></div>
+        <div className="mt-4 flex h-8 items-center px-4 text-[11px] tracking-wide" style={{ background: ann.bg || "#111111", color: ann.color || "#ffffff", fontSize: ann.size ? `${ann.size}px` : undefined }}>{t(ann.text) || "…"}</div>
       </Card>
     </div>
   );
@@ -113,7 +121,7 @@ function Payments() {
                 {gateway && <Toggle checked={m.test_mode} onChange={(v) => setData((data ?? []).map((x, k) => (k === i ? { ...x, test_mode: v } : x)))} label={t(adm.settings.pay.testMode)} />}
                 {gateway && status && (conf ? <Badge tone="green">{t(adm.settings.pay.configured)}</Badge> : <Badge tone="amber">{t(adm.settings.pay.missing)}</Badge>)}
               </div>
-              {gateway && <div className="mt-3 text-[12px] text-mute">{t(adm.settings.pay.webhook)}: <code className="rounded bg-tile px-1">{site}/api/webhooks/{m.id}/</code> <span>{t(adm.settings.pay.slash)}</span>{m.id === "stripe" && <div className="mt-1">{t(adm.settings.pay.stripeEvents)}: <code className="rounded bg-tile px-1">checkout.session.completed</code> <code className="rounded bg-tile px-1">checkout.session.async_payment_succeeded</code> <code className="rounded bg-tile px-1">checkout.session.async_payment_failed</code> <code className="rounded bg-tile px-1">checkout.session.expired</code> <code className="rounded bg-tile px-1">charge.refunded</code></div>}</div>}
+              {gateway && <div className="mt-3 text-[12px] text-mute">{t(adm.settings.pay.webhook)}: <code className="rounded bg-tile px-1">{site}/api/webhooks/{m.id}/</code> <span>{t(adm.settings.pay.slash)}</span>{m.id === "stripe" && <div className="mt-1">{t(adm.settings.pay.stripeEvents)}: <code className="rounded bg-tile px-1">checkout.session.completed</code> <code className="rounded bg-tile px-1">checkout.session.async_payment_succeeded</code> <code className="rounded bg-tile px-1">checkout.session.async_payment_failed</code> <code className="rounded bg-tile px-1">checkout.session.expired</code> <code className="rounded bg-tile px-1">charge.refunded</code> <code className="rounded bg-tile px-1">payment_intent.succeeded</code> <code className="rounded bg-tile px-1">payment_intent.payment_failed</code></div>}</div>}
               <div className="mt-3"><TextField label={t(adm.common.name)} value={m.name} onChange={(v) => setData((data ?? []).map((x, k) => (k === i ? { ...x, name: v } : x)))} /></div>
             </Card>
           );

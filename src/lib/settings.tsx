@@ -4,7 +4,8 @@ import type { StoreSettings, Text } from "@/lib/types";
 
 export interface LogoSettings { image?: string; text?: string; showText?: boolean; height?: number; font?: string; size?: number; tracking?: number; upper?: boolean; weight?: number }
 export interface CategoryNav { slug: string; label: Text }
-export interface SiteSettings { store: Partial<StoreSettings> | null; announcement: { enabled: boolean; text: Text } | null; theme: { accent?: string; signal?: string; font?: string; logo?: LogoSettings } | null; categories?: CategoryNav[] }
+export interface Announcement { enabled: boolean; text: Text; bg?: string; color?: string; href?: string; size?: number }
+export interface SiteSettings { store: Partial<StoreSettings> | null; announcement: Announcement | null; theme: { accent?: string; signal?: string; font?: string; logo?: LogoSettings } | null; categories?: CategoryNav[] }
 const Ctx = createContext<SiteSettings>({ store: null, announcement: null, theme: null, categories: [] });
 export const SettingsProvider = ({ value, children }: { value: SiteSettings; children: ReactNode }) => <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 export const useSettings = () => useContext(Ctx);

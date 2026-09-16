@@ -168,6 +168,9 @@ export const dict = {
     demoFilled: { cs: "Ukázkový zákazník Jan Novák je vyplněný. Stačí odeslat objednávku.", en: "Sample customer Jan Novák is filled in. Just place the order." },
     demoGoing: { cs: "Ukázkový zákazník vyplněn, předávám platební bráně…", en: "Sample customer filled in, handing over to the gateway…" },
     demoFill: { cs: "Vyplnit ukázkového zákazníka", en: "Fill sample customer" },
+    express: { cs: "Rychlá platba", en: "Express payment" }, or: { cs: "nebo zvolte způsob platby", en: "or choose a payment method" },
+    walletGpay: { cs: "Google Pay (přes GoPay)", en: "Google Pay (via GoPay)" }, walletApple: { cs: "Apple Pay (přes GoPay)", en: "Apple Pay (via GoPay)" },
+    payHints: { stripe: "Visa · Mastercard · Apple Pay · Google Pay · Link", gopay: "Karta · GoPay účet · Google Pay · Apple Pay · bankovní tlačítka", comgate: "Karta · bankovní tlačítka", paypal: "PayPal", bank_transfer: "", cash: "" } as Record<string, string>,
   },
   service: {
     title: { cs: "Servis a pneuservis", en: "Service and tyres" },

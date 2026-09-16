@@ -20,9 +20,9 @@ export function Header() {
   if (pathname?.startsWith("/admin")) return null;
   return (
     <header className="sticky top-0 z-40 bg-paper">
-      <div className="bg-ink text-paper">
-        <div className="container-x flex h-8 items-center justify-between text-[11px] tracking-wide">
-          <span className="truncate">{announcement ? (announcement.enabled ? t(announcement.text) : null) : t(dict.topbar)}</span>
+      <div className="bg-ink text-paper" style={{ background: announcement?.bg || undefined, color: announcement?.color || undefined }}>
+        <div className="container-x flex h-8 items-center justify-between text-[11px] tracking-wide" style={{ fontSize: announcement?.size ? `${announcement.size}px` : undefined }}>
+          {announcement?.enabled && announcement.href ? <Link href={announcement.href} className="truncate hover:underline underline-offset-2">{t(announcement.text)}</Link> : <span className="truncate">{announcement ? (announcement.enabled ? t(announcement.text) : null) : t(dict.topbar)}</span>}
           <div className="hidden shrink-0 gap-1 sm:flex" role="group" aria-label="Language">
             {(["cs", "en"] as const).map((l) => (
               <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
