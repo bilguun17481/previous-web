@@ -40,16 +40,6 @@ export const stripeProvider: PaymentProvider = {
     });
     return { redirectUrl: session.url ?? undefined, status: "pending", ref: session.id };
   },
-  async createIntent(order) {
-    const stripe = client();
-    if (!stripe) throw new Error("Stripe is not configured");
-    const pi = await stripe.paymentIntents.create({
-      amount: minor(order.total), currency: order.currency.toLowerCase(), automatic_payment_methods: { enabled: true },
-      receipt_email: order.customer_email, description: `Objednávka ${order.number}`, metadata: { order_id: order.id, order_number: String(order.number) },
-    });
-    if (!pi.client_secret) throw new Error("Stripe: no client secret");
-    return { clientSecret: pi.client_secret, ref: pi.id };
-  },
   async handleWebhook(req) {
     const stripe = client();
     if (!stripe) return null;
@@ -70,11 +60,6 @@ export const stripeProvider: PaymentProvider = {
       const s = event.data.object as Stripe.Checkout.Session;
       const orderId = s.metadata?.order_id ?? s.client_reference_id;
       return orderId ? { orderId, status: "failed", ref: s.id } : null;
-    }
-    if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed" || event.type === "payment_intent.canceled") {
-      const pi = event.data.object as Stripe.PaymentIntent;
-      const orderId = pi.metadata?.order_id;
-      return orderId ? { orderId, status: event.type === "payment_intent.succeeded" ? "paid" : "failed", ref: pi.id } : null;
     }
     if (event.type === "charge.refunded") {
       const c = event.data.object as Stripe.Charge;

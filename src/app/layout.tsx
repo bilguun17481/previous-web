@@ -26,7 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const sandbox = await sandboxPreview();
   const vars = [theme?.accent && `--color-ink:${theme.accent}`, theme?.signal && `--color-signal:${theme.signal}`, theme?.font && theme.font !== "Inter" && `--font-sans:"${theme.font}",Inter Variable,sans-serif`].filter(Boolean).join(";");
   // Public runtime settings for the browser, so the client works even when build-time variables were absent.
-  const runtimeEnv = JSON.stringify({ url: publicEnv("NEXT_PUBLIC_SUPABASE_URL"), anonKey: publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL"), stripeKey: publicEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") });
+  const runtimeEnv = JSON.stringify({ url: publicEnv("NEXT_PUBLIC_SUPABASE_URL"), anonKey: publicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"), siteUrl: publicEnv("NEXT_PUBLIC_SITE_URL") });
   return (
     <html lang="cs">
       <head>

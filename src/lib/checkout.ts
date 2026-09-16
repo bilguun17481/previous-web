@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { baseMethodId, providers } from "@/lib/payments";
+import { providers } from "@/lib/payments";
 import { notifyOrderCreated } from "@/lib/notify";
 import type { Discount, Order, OrderItem, ShippingMethod } from "@/lib/types";
 
@@ -50,7 +50,7 @@ export async function createOrder(input: CheckoutInput, siteUrl: string) {
   if (freeShipping) shipping = 0;
   const total = Math.max(0, subtotal + shipping - (freeShipping ? 0 : discountAmount));
 
-  const { data: pay } = await db.from("payment_methods").select("*").eq("id", baseMethodId(input.paymentMethod)).eq("enabled", true).maybeSingle();
+  const { data: pay } = await db.from("payment_methods").select("*").eq("id", input.paymentMethod).eq("enabled", true).maybeSingle();
   if (!pay) throw new Error("Payment method unavailable");
   const provider = providers[input.paymentMethod];
   if (!provider?.configured) throw new Error(`Payment provider ${input.paymentMethod} is not configured`);
@@ -69,18 +69,16 @@ export async function createOrder(input: CheckoutInput, siteUrl: string) {
   await db.from("customers").upsert({ email: input.email, name: input.name, phone: input.phone ?? null, address: input.address ?? null }, { onConflict: "email" });
   if (discount && discountAmount > 0) await db.from("discounts").update({ used: discount.used + 1 }).eq("id", discount.id);
 
-  const result = input.paymentMethod === "stripe_express" && provider.createIntent
-    ? { ...(await provider.createIntent(o)), status: "pending" as const, redirectUrl: undefined }
-    : await provider.createPayment(o, {
-      returnUrl: `${siteUrl}/objednavka/${o.id}/?paid=1`,
-      cancelUrl: `${siteUrl}/objednavka/${o.id}/?cancelled=1`,
-      notifyUrl: `${siteUrl}/api/webhooks/${baseMethodId(input.paymentMethod)}/`,
-    });
+  const result = await provider.createPayment(o, {
+    returnUrl: `${siteUrl}/objednavka/${o.id}/?paid=1`,
+    cancelUrl: `${siteUrl}/objednavka/${o.id}/?cancelled=1`,
+    notifyUrl: `${siteUrl}/api/webhooks/${input.paymentMethod}/`,
+  });
   await db.from("orders").update({ payment_ref: result.ref ?? null, payment_status: result.status === "paid" ? "paid" : result.redirectUrl ? "pending" : "unpaid" }).eq("id", o.id);
 
   const { data: notif } = await db.from("settings").select("value").eq("key", "notifications").maybeSingle();
   await notifyOrderCreated(o, (notif?.value as { orderEmailTo?: string })?.orderEmailTo);
-  return { orderId: o.id, number: o.number, redirectUrl: result.redirectUrl ?? null, clientSecret: result.clientSecret ?? null };
+  return { orderId: o.id, number: o.number, redirectUrl: result.redirectUrl ?? null };
 }
 
 export async function applyPaymentUpdate(orderId: string, status: "paid" | "failed" | "pending" | "refunded", ref?: string) {

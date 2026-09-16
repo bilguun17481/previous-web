@@ -7,7 +7,6 @@ import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
 import type { OrderItem, PaymentMethod, ShippingMethod } from "@/lib/types";
 import { PickupPicker, hasPickupMap } from "@/components/PickupPicker";
-import { ExpressCheckout } from "@/components/ExpressCheckout";
 
 const field = "h-11 w-full border-b hairline bg-transparent text-[14px] outline-none focus:border-ink placeholder:text-neutral-400";
 declare global { interface Window { Packeta?: { Widget: { pick: (key: string, cb: (p: Record<string, unknown> | null) => void, opts?: Record<string, unknown>) => void } } } }
@@ -53,22 +52,6 @@ export function CheckoutView({ shipping, payments, live, packetaKey, preload, pr
   const discountAmt = discount ? (discount.freeShipping ? shipCost : discount.amount) : 0;
   const total = Math.max(0, subtotal + shipCost - discountAmt);
   const needsAddress = sm && !sm.needs_pickup_point && sm.carrier !== "dealer" || sm?.id === "dealer_delivery";
-  // GoPay can open straight on a wallet: offer those as their own choices next to the plain GoPay entry.
-  const payOptions = payments.flatMap((m) => m.id === "gopay" ? [m, { ...m, id: "gopay_gpay", name: k.walletGpay }, { ...m, id: "gopay_applepay", name: k.walletApple }] : [m]);
-  const hasStripe = payments.some((m) => m.id === "stripe");
-  /** Order creation for the wallet sheet: the typed form wins, the wallet fills what is missing. */
-  const createExpressOrder = async (w: { email?: string; name?: string; phone?: string }) => {
-    if (!live) throw new Error(t(k.demo));
-    if (sm?.needs_pickup_point && !point) throw new Error(t(k.pickPoint));
-    const r = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-      items: items.map((i) => ({ slug: i.slug, qty: i.qty })), email: form.email || w.email, name: form.name || w.name, phone: form.phone || w.phone,
-      address: { street: form.street, city: form.city, zip: form.zip, country: "CZ" }, shippingMethod: ship, pickupPoint: point,
-      paymentMethod: "stripe_express", discountCode: discount?.code ?? undefined, notes: form.notes, locale: lang,
-    }) });
-    const d = await r.json();
-    if (!r.ok || !d.clientSecret) throw new Error(d.error ?? "Checkout failed");
-    return { orderId: d.orderId as string, clientSecret: d.clientSecret as string };
-  };
 
   const isPacketa = sm?.carrier === "packeta" || sm?.carrier === "packeta_sk";
   useEffect(() => { setPoint(null); }, [ship]);
@@ -165,11 +148,8 @@ export function CheckoutView({ shipping, payments, live, packetaKey, preload, pr
           </fieldset>
           <fieldset>
             <legend className="eyebrow">03 · {t(k.payment)}</legend>
-            {hasStripe && live && <ExpressCheckout amount={total} currency="CZK" lang={lang} createOrder={createExpressOrder} onError={setError} />}
             <div className="mt-4 border-t hairline">
-              {payOptions.map((m) => <Radio key={m.id} name="p" value={m.id} current={pay} onChange={setPay} label={t(m.name)} right={m.test_mode && live ? "test" : undefined}>
-                {k.payHints[m.id.startsWith("gopay") ? "gopay" : m.id] ? <span className="block text-[11px] text-mute">{k.payHints[m.id.startsWith("gopay") ? "gopay" : m.id]}</span> : null}
-              </Radio>)}
+              {payments.map((m) => <Radio key={m.id} name="p" value={m.id} current={pay} onChange={setPay} label={t(m.name)} right={m.test_mode && live ? "test" : undefined} />)}
             </div>
           </fieldset>
           <fieldset>

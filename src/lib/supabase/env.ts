@@ -4,7 +4,7 @@
    runtime variables are the single source of truth and a stale build cannot break login. */
 import { publicEnv } from "@/lib/env";
 
-declare global { interface Window { __ENV__?: { url?: string; anonKey?: string; siteUrl?: string; stripeKey?: string } } }
+declare global { interface Window { __ENV__?: { url?: string; anonKey?: string; siteUrl?: string } } }
 const w = typeof window !== "undefined" ? window.__ENV__ ?? {} : {};
 
 const rawUrl = (w.url || publicEnv("NEXT_PUBLIC_SUPABASE_URL")).trim();
