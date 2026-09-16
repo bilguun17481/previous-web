@@ -119,7 +119,7 @@ export function Editor({ slug }: { slug: string }) {
     <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col md:-m-6 lg:-m-8">
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-hair bg-paper px-4 py-2">
-        <button onClick={toggleList} title={showList ? t(p.hideList) : t(p.showList)} className={`hidden h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile md:inline-flex ${showList ? "" : "text-mute"}`} aria-pressed={showList}>☰</button>
+        {!single && <button onClick={toggleList} title={showList ? t(p.hideList) : t(p.showList)} className={`hidden h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile md:inline-flex ${showList ? "" : "text-mute"}`} aria-pressed={showList}>☰</button>}
         <Link href={single ? "/admin/content/categories/" : "/admin/content/pages/"} className="text-[12px] text-mute hover:text-ink">← {single ? t(adm.categories.title) : t(p.title)}</Link>
         <span className="text-[14px] font-semibold">{single ? `${t(p.categoryBanner)}: ${t(page.title)}` : t(page.title) || page.slug}</span>
         <span className="font-mono text-[11px] text-mute">{href}</span>
