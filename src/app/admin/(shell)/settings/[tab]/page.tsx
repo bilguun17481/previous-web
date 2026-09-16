@@ -88,6 +88,8 @@ function General() {
 
 function Payments() {
   const { t } = useT(); const toast = useToast(); const status = useStatus();
+  const { v: co, setV: setCo, loaded: coLoaded } = useSetting<{ demoCustomer: boolean }>("checkout", { demoCustomer: true });
+  const setDemoCustomer = async (x: boolean) => { const n = { ...co, demoCustomer: x }; setCo(n); await repo().settings.set("checkout", n); await refreshStorefront(["/pokladna/"]); toast(t(adm.common.saved)); };
   const { data, setData } = useAsync(() => repo().payments.list());
   const save = async (m: PaymentMethod) => { await repo().payments.save(m); await refreshStorefront(["/pokladna/"]); toast(t(adm.common.saved)); };
   const site = status?.siteUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
@@ -97,6 +99,7 @@ function Payments() {
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-hair bg-paper px-4 py-3 text-[13px]">
         <a href="/pokladna/?demo=go&add=prilba-otevrena-s-plexi" target="_blank" className="inline-flex h-9 items-center rounded-md bg-ink px-3.5 font-medium text-paper hover:bg-neutral-700">{t(adm.settings.pay.demoLink)} →</a>
         <span className="text-mute">{t(adm.settings.pay.demoLinkHint)}</span>
+        <div className="basis-full border-t border-hair pt-3"><Toggle checked={coLoaded ? co.demoCustomer !== false : true} onChange={setDemoCustomer} label={t(adm.settings.pay.demoCustomer)} /><span className="ml-3 text-[12px] text-mute">{t(adm.settings.pay.demoCustomerHint)}</span></div>
       </div>
       <StatusProblem status={status} />
       <div className="grid gap-4 lg:grid-cols-2">

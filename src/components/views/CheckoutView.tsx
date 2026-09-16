@@ -15,7 +15,7 @@ declare global { interface Window { Packeta?: { Widget: { pick: (key: string, cb
    ?demo=go also submits it, ?add=<slug> puts a product in the cart first. */
 const SAMPLE = { name: "Jan Novák", email: "jan.novak@example.cz", phone: "+420 777 123 456", street: "Nádraží 604", city: "Golčův Jeníkov", zip: "582 82", notes: "Ukázková objednávka / demo order" };
 
-export function CheckoutView({ shipping, payments, live, packetaKey, preload }: { shipping: ShippingMethod[]; payments: PaymentMethod[]; live: boolean; packetaKey: string; preload?: Omit<OrderItem, "qty"> }) {
+export function CheckoutView({ shipping, payments, live, packetaKey, preload, prefill = false }: { shipping: ShippingMethod[]; payments: PaymentMethod[]; live: boolean; packetaKey: string; preload?: Omit<OrderItem, "qty">; prefill?: boolean }) {
   const { t, lang } = useLang();
   const { items, subtotal, hydrated, add } = useCart();
   const [demo, setDemo] = useState<"" | "fill" | "go">("");
@@ -26,7 +26,7 @@ export function CheckoutView({ shipping, payments, live, packetaKey, preload }: 
   const k = dict.checkout;
   const hasVehicle = items.some((i) => !i.slug.match(/^(navijak|snehova|zadni|tazne|prilba|plachta|motorovy|pneumatika)/));
   const methods = shipping.filter((m) => !hasVehicle || m.vehicles);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", street: "", city: "", zip: "", notes: "" });
+  const [form, setForm] = useState(prefill ? { ...SAMPLE, notes: "" } : { name: "", email: "", phone: "", street: "", city: "", zip: "", notes: "" });
   const [ship, setShip] = useState(methods[0]?.id ?? "");
   const [pay, setPay] = useState(payments[0]?.id ?? "");
   const [point, setPoint] = useState<Record<string, unknown> | null>(null);
