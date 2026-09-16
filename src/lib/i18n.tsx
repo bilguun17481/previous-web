@@ -161,6 +161,8 @@ export const dict = {
     choosePoint: { cs: "Vybrat výdejní místo", en: "Choose a pickup point" },
     pickPoint: { cs: "Vyberte prosím výdejní místo.", en: "Please choose a pickup point." },
     noWidget: { cs: "Výběr míst bude dostupný po nastavení Zásilkovny.", en: "Point selection becomes available once Packeta is configured." },
+    changePoint: { cs: "Změnit", en: "Change" }, pointManualHint: { cs: "Zadejte název nebo číslo výdejního místa, kam má zásilka dorazit.", en: "Enter the name or number of the pickup point the parcel should go to." },
+    pointName: { cs: "Název výdejního místa", en: "Pickup point name" }, pointId: { cs: "Číslo / kód místa (pokud znáte)", en: "Point number / code (if known)" }, usePoint: { cs: "Použít toto místo", en: "Use this point" },
     demo: { cs: "Ukázková verze: objednávky se odesílají až po připojení databáze.", en: "Demo version: orders are sent once the database is connected." },
   },
   service: {

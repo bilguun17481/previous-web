@@ -6,6 +6,7 @@ import { formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
 import type { PaymentMethod, ShippingMethod } from "@/lib/types";
+import { PickupPicker, hasPickupMap } from "@/components/PickupPicker";
 
 const field = "h-11 w-full border-b hairline bg-transparent text-[14px] outline-none focus:border-ink placeholder:text-neutral-400";
 declare global { interface Window { Packeta?: { Widget: { pick: (key: string, cb: (p: Record<string, unknown> | null) => void, opts?: Record<string, unknown>) => void } } } }
@@ -21,6 +22,7 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
   const [ship, setShip] = useState(methods[0]?.id ?? "");
   const [pay, setPay] = useState(payments[0]?.id ?? "");
   const [point, setPoint] = useState<Record<string, unknown> | null>(null);
+  const [picker, setPicker] = useState(false);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState<{ amount: number; freeShipping: boolean; code: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,12 +35,16 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
   const total = Math.max(0, subtotal + shipCost - discountAmt);
   const needsAddress = sm && !sm.needs_pickup_point && sm.carrier !== "dealer" || sm?.id === "dealer_delivery";
 
+  const isPacketa = sm?.carrier === "packeta" || sm?.carrier === "packeta_sk";
+  useEffect(() => { setPoint(null); }, [ship]);
   useEffect(() => {
-    if (!sm?.needs_pickup_point || !packetaKey || window.Packeta) return;
+    if (!sm?.needs_pickup_point || !isPacketa || !packetaKey || window.Packeta) return;
     const s = document.createElement("script"); s.src = "https://widget.packeta.com/v6/www/js/library.js"; s.async = true; document.body.appendChild(s);
-  }, [sm, packetaKey]);
+  }, [sm, isPacketa, packetaKey]);
 
-  const pickPoint = () => window.Packeta?.Widget.pick(packetaKey, (p) => p && setPoint(p), { language: lang, country: "cz" });
+  // Zásilkovna has its own overlay widget; PPL, GLS and Česká pošta open in our dialog; other carriers take a typed point.
+  const pickPoint = () => { if (isPacketa) window.Packeta?.Widget.pick(packetaKey, (p) => p && setPoint({ ...p, carrier: "packeta" }), { language: lang, country: sm?.carrier === "packeta_sk" ? "sk" : "cz" }); else setPicker(true); };
+  const pickerDisabled = isPacketa && !packetaKey;
 
   const applyCode = async () => {
     if (!code) return;
@@ -101,10 +107,11 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
             </div>
             {sm?.needs_pickup_point && (
               <div className="mt-4 flex flex-wrap items-center gap-4">
-                <button type="button" onClick={pickPoint} className="btn-ghost" disabled={!packetaKey}>{t(k.choosePoint)}</button>
-                <span className="text-[13px]">{point ? String(point.name ?? point.place ?? "") : packetaKey ? null : t(k.noWidget)}</span>
+                <button type="button" onClick={pickPoint} className="btn-ghost" disabled={pickerDisabled}>{point ? t(k.changePoint) : t(k.choosePoint)}</button>
+                <span className="text-[13px]">{point ? <><strong>{String(point.name ?? point.place ?? "")}</strong>{point.address ? <span className="text-mute"> · {String(point.address)}</span> : null}</> : pickerDisabled ? t(k.noWidget) : hasPickupMap(sm.carrier) ? null : null}</span>
               </div>
             )}
+            {picker && sm && <PickupPicker carrier={sm.carrier} onPick={(p) => setPoint(p as unknown as Record<string, unknown>)} onClose={() => setPicker(false)} />}
             {needsAddress && (
               <div className="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-[2fr_1fr_1fr]">
                 <input required className={field} placeholder={t(k.street)} value={form.street} onChange={(e) => setForm({ ...form, street: e.target.value })} />

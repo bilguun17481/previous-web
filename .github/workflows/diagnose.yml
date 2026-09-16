@@ -26,3 +26,9 @@ jobs:
         run: |
           curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o '<img[^>]*>' | head -20 || true
           curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o 'src="[^"]*"' | sort -u | head -40 || true
+      - name: Pickup widgets reachable
+        run: |
+          for u in "https://www.ppl.cz/sources/map/main.js" "https://map.gls-hungary.com/widget/gls-dpm.js" "https://b2c.cpost.cz/locations/?type=BALIKOVNY" "https://widget.packeta.com/v6/www/js/library.js"; do
+            echo "== $u"; curl -sS -o /tmp/w -w 'status=%{http_code} type=%{content_type} bytes=%{size_download}\n' --max-time 30 -A "Mozilla/5.0" "$u" || true
+            grep -o 'ppl-parcelshop-map\|gls-dpm\|postMessage\|customElements.define([^)]*' /tmp/w | sort | uniq -c | head -5 || true
+          done

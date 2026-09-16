@@ -186,6 +186,9 @@ export async function getShippingMethods(): Promise<ShippingMethod[]> {
     return [
       { id: "pickup", carrier: "dealer", name: { cs: "Osobní odběr, Golčův Jeníkov", en: "Pick up in Golčův Jeníkov" }, description: { cs: "", en: "" }, price: 0, free_over: null, enabled: true, needs_pickup_point: false, vehicles: true, sort: 0 },
       { id: "packeta_point", carrier: "packeta", name: { cs: "Zásilkovna – výdejní místo", en: "Packeta pickup point" }, description: { cs: "", en: "" }, price: 89, free_over: 3000, enabled: true, needs_pickup_point: true, vehicles: false, sort: 1 },
+      { id: "ppl_shop", carrier: "ppl", name: { cs: "PPL ParcelShop / ParcelBox", en: "PPL ParcelShop / ParcelBox" }, description: { cs: "", en: "" }, price: 79, free_over: 3000, enabled: true, needs_pickup_point: true, vehicles: false, sort: 2 },
+      { id: "gls_shop", carrier: "gls", name: { cs: "GLS ParcelShop / GLS Box", en: "GLS ParcelShop / GLS Box" }, description: { cs: "", en: "" }, price: 75, free_over: 3000, enabled: true, needs_pickup_point: true, vehicles: false, sort: 3 },
+      { id: "balikovna", carrier: "balikovna", name: { cs: "Balíkovna", en: "Balíkovna (Czech Post pickup)" }, description: { cs: "", en: "" }, price: 69, free_over: 3000, enabled: true, needs_pickup_point: true, vehicles: false, sort: 4 },
     ];
   }
   const { data } = await supabasePublic().from("shipping_methods").select("*").eq("enabled", true).order("sort");

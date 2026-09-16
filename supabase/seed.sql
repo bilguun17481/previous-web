@@ -77,7 +77,10 @@ insert into public.shipping_methods (id, carrier, name, description, price, free
 ('dpd', 'dpd', '{"cs":"DPD – na adresu","en":"DPD to address"}'::jsonb, '{}'::jsonb, 139, 5000, true, false, false, 5),
 ('ceska_posta', 'ceska_posta', '{"cs":"Česká pošta – Balík do ruky","en":"Czech Post parcel"}'::jsonb, '{}'::jsonb, 119, 5000, true, false, false, 6),
 ('gls', 'gls', '{"cs":"GLS – na adresu","en":"GLS to address"}'::jsonb, '{}'::jsonb, 129, 5000, true, false, false, 7),
-('fofr', 'fofr', '{"cs":"FOFR – paletová přeprava","en":"FOFR pallet freight"}'::jsonb, '{"cs":"Těžké díly a pneumatiky na paletě.","en":"Heavy parts and tyres on a pallet."}'::jsonb, 690, null, true, false, false, 8)
+('fofr', 'fofr', '{"cs":"FOFR – paletová přeprava","en":"FOFR pallet freight"}'::jsonb, '{"cs":"Těžké díly a pneumatiky na paletě.","en":"Heavy parts and tyres on a pallet."}'::jsonb, 690, null, true, false, false, 8),
+('ppl_shop', 'ppl', '{"cs":"PPL ParcelShop / ParcelBox","en":"PPL ParcelShop / ParcelBox"}'::jsonb, '{"cs":"Vyzvednutí na výdejním místě PPL, v boxu nebo AlzaBoxu.","en":"Pick up at a PPL ParcelShop, ParcelBox or AlzaBox."}'::jsonb, 79, 3000, false, true, false, 9),
+('gls_shop', 'gls', '{"cs":"GLS ParcelShop / GLS Box","en":"GLS ParcelShop / GLS Box"}'::jsonb, '{"cs":"Vyzvednutí na výdejním místě GLS nebo v boxu.","en":"Pick up at a GLS ParcelShop or GLS Box."}'::jsonb, 75, 3000, false, true, false, 10),
+('balikovna', 'balikovna', '{"cs":"Balíkovna","en":"Balíkovna (Czech Post pickup)"}'::jsonb, '{"cs":"Vyzvednutí na poště nebo v Balíkovně.","en":"Pick up at a post office or Balíkovna box."}'::jsonb, 69, 3000, false, true, false, 11)
 on conflict (id) do nothing;
 
 insert into public.payment_methods (id, name, enabled, test_mode, config, sort) values
