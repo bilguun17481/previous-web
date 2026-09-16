@@ -5,15 +5,23 @@ import { useRouter } from "next/navigation";
 import { formatKc } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
-import type { PaymentMethod, ShippingMethod } from "@/lib/types";
+import type { OrderItem, PaymentMethod, ShippingMethod } from "@/lib/types";
 import { PickupPicker, hasPickupMap } from "@/components/PickupPicker";
 
 const field = "h-11 w-full border-b hairline bg-transparent text-[14px] outline-none focus:border-ink placeholder:text-neutral-400";
 declare global { interface Window { Packeta?: { Widget: { pick: (key: string, cb: (p: Record<string, unknown> | null) => void, opts?: Record<string, unknown>) => void } } } }
 
-export function CheckoutView({ shipping, payments, live, packetaKey }: { shipping: ShippingMethod[]; payments: PaymentMethod[]; live: boolean; packetaKey: string }) {
+/* Sample customer for showcasing the payment gateways: /pokladna/?demo=1 fills the form,
+   ?demo=go also submits it, ?add=<slug> puts a product in the cart first. */
+const SAMPLE = { name: "Jan Novák", email: "jan.novak@example.cz", phone: "+420 777 123 456", street: "Nádraží 604", city: "Golčův Jeníkov", zip: "582 82", notes: "Ukázková objednávka / demo order" };
+
+export function CheckoutView({ shipping, payments, live, packetaKey, preload }: { shipping: ShippingMethod[]; payments: PaymentMethod[]; live: boolean; packetaKey: string; preload?: Omit<OrderItem, "qty"> }) {
   const { t, lang } = useLang();
-  const { items, subtotal, hydrated } = useCart();
+  const { items, subtotal, hydrated, add } = useCart();
+  const [demo, setDemo] = useState<"" | "fill" | "go">("");
+  const [demoDone, setDemoDone] = useState(false);
+  useEffect(() => { const d = new URLSearchParams(window.location.search).get("demo"); setDemo(d === "go" ? "go" : d ? "fill" : ""); }, []);
+  useEffect(() => { if (hydrated && preload && !items.some((i) => i.slug === preload.slug)) add(preload); }, [hydrated, preload, items, add]);
   const router = useRouter();
   const k = dict.checkout;
   const hasVehicle = items.some((i) => !i.slug.match(/^(navijak|snehova|zadni|tazne|prilba|plachta|motorovy|pneumatika)/));
@@ -29,6 +37,16 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { if (!methods.find((m) => m.id === ship)) setShip(methods[0]?.id ?? ""); }, [methods, ship]);
+  /** Fill the sample customer, pick a delivery that needs no pickup point and the card gateway when it is on. */
+  const fillSample = () => {
+    setForm({ ...SAMPLE });
+    const easy = methods.find((m) => !m.needs_pickup_point && m.carrier === "dealer") ?? methods.find((m) => !m.needs_pickup_point) ?? methods[0];
+    if (easy) setShip(easy.id);
+    const gateway = payments.find((p) => p.id === "stripe") ?? payments.find((p) => !["bank_transfer", "cash"].includes(p.id)) ?? payments[0];
+    if (gateway) setPay(gateway.id);
+    setDemoDone(true);
+  };
+  useEffect(() => { if (demo && hydrated && items.length && !demoDone) fillSample(); }, [demo, hydrated, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const sm = methods.find((m) => m.id === ship);
   const shipCost = useMemo(() => !sm ? 0 : sm.free_over != null && subtotal >= sm.free_over ? 0 : Number(sm.price), [sm, subtotal]);
   const discountAmt = discount ? (discount.freeShipping ? shipCost : discount.amount) : 0;
@@ -54,8 +72,8 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
     if (!d.valid) setError(t(k.badCode));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(null);
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault(); setError(null);
     if (!live) { setError(t(k.demo)); return; }
     if (sm?.needs_pickup_point && !point) { setError(t(k.pickPoint)); return; }
     setBusy(true);
@@ -70,6 +88,8 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
       if (d.redirectUrl) window.location.href = d.redirectUrl; else router.push(`/objednavka/${d.orderId}/`);
     } catch (err) { setError((err as Error).message); setBusy(false); }
   };
+  // ?demo=go: hand over to the gateway as soon as the sample customer is in place.
+  useEffect(() => { if (demo === "go" && demoDone && form.email === SAMPLE.email && !busy && !error) { const id = setTimeout(() => submit(), 400); return () => clearTimeout(id); } }, [demo, demoDone, form.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const Radio = ({ name, value, current, onChange, label, right, children }: { name: string; value: string; current: string; onChange: (v: string) => void; label: string; right?: string; children?: React.ReactNode }) => (
     <label className="flex cursor-pointer items-center gap-3 border-b hairline py-3.5 text-[14px] last:border-0">
@@ -86,6 +106,12 @@ export function CheckoutView({ shipping, payments, live, packetaKey }: { shippin
   return (
     <section className="container-x py-12">
       <h1 className="text-[40px] font-bold leading-none tracking-[-0.02em]">{t(k.title)}</h1>
+      {demo && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-md border border-violet-200 bg-violet-50 px-4 py-3 text-[13px] text-violet-800">
+          <span>{demo === "go" && demoDone ? t(k.demoGoing) : demoDone ? t(k.demoFilled) : t(k.demoHint)}</span>
+          <button type="button" onClick={fillSample} className="rounded-md border border-violet-300 px-3 py-1 font-medium hover:bg-violet-100">{t(k.demoFill)}</button>
+        </div>
+      )}
       <form className="mt-10 grid gap-12 lg:grid-cols-[7fr_4fr]" onSubmit={submit}>
         <div className="space-y-12">
           <fieldset>

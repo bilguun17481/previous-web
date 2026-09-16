@@ -164,6 +164,10 @@ export const dict = {
     changePoint: { cs: "Změnit", en: "Change" }, pointManualHint: { cs: "Zadejte název nebo číslo výdejního místa, kam má zásilka dorazit.", en: "Enter the name or number of the pickup point the parcel should go to." },
     pointName: { cs: "Název výdejního místa", en: "Pickup point name" }, pointId: { cs: "Číslo / kód místa (pokud znáte)", en: "Point number / code (if known)" }, usePoint: { cs: "Použít toto místo", en: "Use this point" },
     demo: { cs: "Ukázková verze: objednávky se odesílají až po připojení databáze.", en: "Demo version: orders are sent once the database is connected." },
+    demoHint: { cs: "Ukázka platby: vyplňte ukázkového zákazníka a přejděte rovnou k platební bráně.", en: "Payment showcase: fill in a sample customer and go straight to the gateway." },
+    demoFilled: { cs: "Ukázkový zákazník Jan Novák je vyplněný. Stačí odeslat objednávku.", en: "Sample customer Jan Novák is filled in. Just place the order." },
+    demoGoing: { cs: "Ukázkový zákazník vyplněn, předávám platební bráně…", en: "Sample customer filled in, handing over to the gateway…" },
+    demoFill: { cs: "Vyplnit ukázkového zákazníka", en: "Fill sample customer" },
   },
   service: {
     title: { cs: "Servis a pneuservis", en: "Service and tyres" },

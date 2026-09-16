@@ -94,6 +94,10 @@ function Payments() {
   return (
     <div className="space-y-4">
       <p className="text-[13px] text-mute">{t(adm.settings.pay.hint)}</p>
+      <div className="flex flex-wrap items-center gap-3 rounded-md border border-hair bg-paper px-4 py-3 text-[13px]">
+        <a href="/pokladna/?demo=go&add=prilba-otevrena-s-plexi" target="_blank" className="inline-flex h-9 items-center rounded-md bg-ink px-3.5 font-medium text-paper hover:bg-neutral-700">{t(adm.settings.pay.demoLink)} →</a>
+        <span className="text-mute">{t(adm.settings.pay.demoLinkHint)}</span>
+      </div>
       <StatusProblem status={status} />
       <div className="grid gap-4 lg:grid-cols-2">
         {(data ?? []).map((m, i) => {
