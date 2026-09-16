@@ -3,6 +3,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
+import { DEFAULT_LOGO, Logo } from "@/components/Logo";
+import { MediaPicker } from "@/components/admin/MediaPicker";
+import { FONTS } from "@/lib/fonts";
+import type { LogoSettings } from "@/lib/settings";
 import { CARRIERS, GROUP_LABEL, SERVICE_LABEL, carrierDef } from "@/lib/shipping/catalog";
 import { repo, type Profile } from "@/lib/admin/repo";
 import { Badge, Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useAsync, useT, useToast } from "@/components/admin/ui";
@@ -198,9 +202,37 @@ function Notifications() {
   return <Card title={t(adm.settings.tabs.notifications)} actions={<SaveBar onSave={() => repo().settings.set("notifications", v)} />}><div className="grid max-w-md gap-3"><Field label={t(adm.settings.notif.staff)}><Input type="email" value={v.orderEmailTo} onChange={(e) => setV({ ...v, orderEmailTo: e.target.value })} /></Field><Toggle checked={v.customerConfirmation} onChange={(x) => setV({ ...v, customerConfirmation: x })} label={t(adm.settings.notif.customer)} /><p className="text-[12px] text-mute">{t(adm.settings.notif.resend)} {status && (status.email ? <Badge tone="green">OK</Badge> : <Badge tone="amber">{t(adm.settings.pay.missing)}</Badge>)}</p></div></Card>;
 }
 function Theme() {
-  const { t } = useT(); const { v, setV } = useSetting("theme", { accent: "#111111", signal: "#d0021b", font: "Inter" });
+  const { t } = useT(); const { v, setV } = useSetting<{ accent: string; signal: string; font: string; logo?: LogoSettings }>("theme", { accent: "#111111", signal: "#d0021b", font: "Inter" });
+  const th = adm.settings.theme; const logo: LogoSettings = { ...DEFAULT_LOGO, ...(v.logo ?? {}) };
+  const setLogo = (patch: Partial<LogoSettings>) => setV({ ...v, logo: { ...logo, ...patch } });
+  const num = (s: string) => (s === "" ? undefined : Number(s));
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <Card title={t(th.logo)} actions={<SaveBar onSave={async () => { await repo().settings.set("theme", v); await refreshStorefront(["/"]); }} />} className="lg:col-span-2">
+        <p className="mb-4 text-[12px] text-mute">{t(th.logoHint)}</p>
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <div className="space-y-3">
+            <Field label={t(th.logoImage)}><MediaPicker value={logo.image ? { kind: "image", url: logo.image } : undefined} onChange={(m) => setLogo({ image: m?.url || undefined })} accept="image/*" /></Field>
+            <Field label={t(th.logoText)}><Input value={logo.text ?? ""} onChange={(e) => setLogo({ text: e.target.value })} /></Field>
+            <div className="flex flex-wrap gap-5">
+              <Toggle checked={logo.showText !== false} onChange={(x) => setLogo({ showText: x })} label={t(th.logoShowText)} />
+              <Toggle checked={logo.upper !== false} onChange={(x) => setLogo({ upper: x })} label={t(th.logoUpper)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <Field label={t(th.logoHeight)}><Input type="number" min={16} max={160} value={logo.height ?? ""} onChange={(e) => setLogo({ height: num(e.target.value) })} /></Field>
+              <Field label={t(th.logoSize)}><Input type="number" min={10} max={64} value={logo.size ?? ""} onChange={(e) => setLogo({ size: num(e.target.value) })} /></Field>
+              <Field label={t(th.logoTracking)}><Input type="number" step={0.01} min={-0.1} max={0.4} value={logo.tracking ?? ""} onChange={(e) => setLogo({ tracking: num(e.target.value) })} /></Field>
+              <Field label={t(th.logoFont)}><Select value={logo.font ?? ""} onChange={(e) => setLogo({ font: e.target.value || undefined })}><option value="">Inter</option>{FONTS.filter((f) => f.name !== "Inter").map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}</Select></Field>
+              <Field label={t(th.logoWeight)}><Select value={logo.weight ?? 800} onChange={(e) => setLogo({ weight: Number(e.target.value) })}>{[400, 500, 600, 700, 800, 900].map((w) => <option key={w} value={w}>{w}</option>)}</Select></Field>
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-[12px] font-medium text-neutral-700">{t(th.preview)}</div>
+            <div className="flex h-[72px] items-center border border-hair bg-paper px-5"><Logo link={false} override={logo} /></div>
+            <div className="mt-2 flex h-[72px] items-center bg-ink px-5 text-paper"><Logo link={false} override={logo} /></div>
+          </div>
+        </div>
+      </Card>
       <Card title={t(adm.settings.tabs.theme)} actions={<SaveBar onSave={() => repo().settings.set("theme", v)} />}>
         <div className="grid gap-3">
           <Field label={t(adm.settings.theme.accent)}><div className="flex gap-2"><input type="color" value={v.accent} onChange={(e) => setV({ ...v, accent: e.target.value })} className="h-9 w-12 rounded border border-hair" /><Input value={v.accent} onChange={(e) => setV({ ...v, accent: e.target.value })} /></div></Field>

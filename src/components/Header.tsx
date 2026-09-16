@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { useState } from "react";
 import { dict, useLang } from "@/lib/i18n";
 import { useCart } from "@/lib/cart";
@@ -40,9 +41,7 @@ export function Header() {
       </div>
       <div className="border-b hairline">
         <div className="container-x flex h-[72px] items-center justify-between gap-6">
-          <Link href="/" className="text-[22px] font-extrabold uppercase leading-none tracking-[-0.03em]">
-            Moto Dvořák
-          </Link>
+          <Logo />
           <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
             {links.map((l) => (
               <Link key={l.key} href={l.href} className="text-[12px] font-semibold uppercase tracking-[0.14em] hover:text-mute">

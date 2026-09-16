@@ -1,4 +1,5 @@
 "use client";
+import { Logo } from "@/components/Logo";
 import Link from "next/link";
 import { dict, useLang } from "@/lib/i18n";
 import { usePathname } from "next/navigation";
@@ -26,7 +27,7 @@ export function Footer() {
       </div>
       <div className="container-x grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <div className="text-[20px] font-extrabold uppercase tracking-[-0.03em]">Moto Dvořák</div>
+          <div><Logo scale={0.9} link={false} /></div>
           <p className="mt-4 text-[13px] leading-relaxed text-neutral-400">
             {store?.legal ?? "Dvořák a synové s.r.o."}<br />{store?.address ?? "Nádraží 604, 582 82 Golčův Jeníkov"}<br />{store?.phone ?? "+420 603 235 182"}<br />{store?.email ?? "servis@elektrodvorak.cz"}
           </p>

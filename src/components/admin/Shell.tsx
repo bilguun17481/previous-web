@@ -9,6 +9,7 @@ import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { setActiveSandbox, useActiveSandbox } from "@/lib/admin/sandbox";
 import { ToastProvider, useT } from "./ui";
+import { Logo } from "@/components/Logo";
 
 const I = {
   home: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", orders: "M6 3h12l1 4H5zM5 7h14v13H5zM9 11h6", products: "M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10",
@@ -41,7 +42,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-[#f6f6f4] text-ink">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-hair bg-paper px-4">
           <button onClick={toggleNav} aria-label="Menu" title={collapsed ? t(adm.nav.showMenu) : t(adm.nav.hideMenu)} className="rounded-md p-1 hover:bg-tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7h18M3 12h18M3 17h18" /></svg></button>
-          <Link href="/admin/" className="text-[15px] font-extrabold uppercase tracking-[-0.03em]">Moto Dvořák <span className="ml-1 rounded bg-tile px-1.5 py-0.5 text-[10px] font-semibold tracking-normal text-mute">ADMIN</span></Link>
+          <Link href="/admin/" className="text-[15px] font-extrabold uppercase tracking-[-0.03em]"><Logo link={false} scale={0.7} /> <span className="ml-1 rounded bg-tile px-1.5 py-0.5 text-[10px] font-semibold tracking-normal text-mute">ADMIN</span></Link>
           <div className="hidden flex-1 md:block"><input placeholder={t(adm.nav.search)} className="h-8 w-full max-w-md rounded-md border border-hair bg-[#f6f6f4] px-3 text-[13px] outline-none focus:border-ink" onKeyDown={(e) => { if (e.key === "Enter") router.push(`/admin/orders/?q=${encodeURIComponent((e.target as HTMLInputElement).value)}`); }} /></div>
           <div className="ml-auto flex items-center gap-3 text-[12px]">
             {repo().mode === "demo" && <span className="hidden rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 md:inline">Demo</span>}
