@@ -7,7 +7,8 @@ export interface ProductVideo { kind: "upload" | "youtube" | "vimeo"; url: strin
 export interface ProductImage { url: string; alt?: string }
 
 /** Catalog product plus the fields only the database carries. */
-export interface ShopProduct extends Product {
+export interface ShopProduct extends Omit<Product, "category"> {
+  category: string;
   id?: string;
   status?: "draft" | "active" | "archived";
   stock?: number;

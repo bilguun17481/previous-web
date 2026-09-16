@@ -3,9 +3,10 @@ import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Card, money, PageHeader, useAsync, useT } from "@/components/admin/ui";
 import { Bars } from "@/components/admin/Chart";
-import { categories } from "@/data/catalog";
+import { useCategories } from "@/lib/admin/useCategories";
 
 export default function Analytics() {
+  const categories = useCategories();
   const { t } = useT();
   const { data } = useAsync(async () => { const r = repo(); const [orders, products, days] = await Promise.all([r.orders.list(), r.products.list(), r.salesByDay(90)]); return { orders, products, days }; });
   const paid = (data?.orders ?? []).filter((o) => o.payment_status === "paid");

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { adm } from "@/lib/admin/i18n";
 import { repo } from "@/lib/admin/repo";
 import { Button, Card, Field, Input, PageHeader, Select, TextField, Toggle, useT, useToast } from "@/components/admin/ui";
-import { brands, categories, colorHex, colorImage, colorName, type ProductColor } from "@/data/catalog";
+import { brands, colorHex, colorImage, colorName, type ProductColor } from "@/data/catalog";
+import { useCategories } from "@/lib/admin/useCategories";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import { Video } from "@/components/Media";
 import { SmartImg } from "@/components/SmartImg";
@@ -14,6 +15,7 @@ const blank: ShopProduct = { slug: "", brand: "CFMOTO", category: "ctyrkolky", n
 const slugify = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export default function ProductEditor() {
+  const categories = useCategories();
   const { t } = useT();
   const toast = useToast();
   const router = useRouter();

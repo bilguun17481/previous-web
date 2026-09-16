@@ -1,4 +1,4 @@
-import { categories as localCategories, products as localProducts, type Category, type Product } from "@/data/catalog";
+import { categories as localCategories, products as localProducts, type Product } from "@/data/catalog";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { supabasePublic } from "@/lib/supabase/public";
 import { cache } from "react";
@@ -9,7 +9,7 @@ import type { ChangesetItem, Page, PaymentMethod, ShippingMethod, ShopProduct, T
 
 const rowToProduct = (r: Record<string, unknown>): ShopProduct => ({
   id: r.id as string,
-  slug: r.slug as string, brand: r.brand as string, category: r.category as Category, name: r.name as string,
+  slug: r.slug as string, brand: r.brand as string, category: r.category as string, name: r.name as string,
   price: Number(r.price), oldPrice: r.old_price == null ? undefined : Number(r.old_price),
   homologation: r.homologation as Product["homologation"], art: "gear",
   tags: (r.tags as Product["tags"]) ?? [], cc: (r.cc as number) ?? undefined, power: (r.power as string) ?? undefined, drive: (r.drive as string) ?? undefined,
@@ -116,7 +116,7 @@ const overlayPage = async (slug: string, page: Page | null) => {
   return it ? (it.patch as unknown as Page) : page;
 };
 
-export async function getProducts(opts: { category?: Category; featured?: boolean; slugs?: string[] } = {}): Promise<ShopProduct[]> {
+export async function getProducts(opts: { category?: string; featured?: boolean; slugs?: string[] } = {}): Promise<ShopProduct[]> {
   if (!supabaseConfigured) {
     let list: ShopProduct[] = localProducts;
     if (opts.category) list = list.filter((p) => p.category === opts.category);
@@ -147,7 +147,7 @@ export async function getCategories() {
   if (!supabaseConfigured) return localCategories.map((c) => ({ slug: c.slug, label: c.label, blurb: c.blurb, image_url: null as string | null, video_url: null as string | null }));
   const { data } = await supabasePublic().from("categories").select("*").order("sort").then((r) => r, () => ({ data: null }));
   if (!data?.length) return localCategories.map((c) => ({ slug: c.slug, label: c.label, blurb: c.blurb, image_url: null as string | null, video_url: null as string | null }));
-  const rows = data as { slug: Category; label: Text; blurb: Text; image_url: string | null; video_url: string | null }[];
+  const rows = data as { slug: string; label: Text; blurb: Text; image_url: string | null; video_url: string | null }[];
   const map = await healUrls(rows.flatMap((c) => [c.image_url ?? "", c.video_url ?? ""]));
   if (!map.size) return rows;
   return Promise.all(rows.map(async (c) => {

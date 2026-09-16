@@ -9,7 +9,7 @@ export function Footer() {
   const { t } = useLang();
   const f = dict.footer;
   const pathname = usePathname();
-  const { store } = useSettings();
+  const { store, categories } = useSettings();
   if (pathname?.startsWith("/admin")) return null;
   return (
     <footer className="mt-24 bg-charcoal text-paper">
@@ -43,10 +43,7 @@ export function Footer() {
             ))}
           </div>
         </div>
-        <Col title={t(f.sales)} items={[
-          ["/ctyrkolky/", t(dict.nav.ctyrkolky)], ["/utv/", t(dict.nav.utv)], ["/motocykly/", t(dict.nav.motocykly)],
-          ["/skutry/", t(dict.nav.skutry)], ["/prislusenstvi/", t(dict.nav.prislusenstvi)],
-        ]} />
+        <Col title={t(f.sales)} items={(categories ?? []).map((c) => [`/${c.slug}/`, t(c.label)] as [string, string])} />
         <Col title={t(f.help)} items={[
           ["/servis/", t(dict.nav.servis)], ["/servis/", t(f.parts)], ["#", t(f.financing)], ["#", t(f.delivery)], ["#", t(f.warranty)],
         ]} />

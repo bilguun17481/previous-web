@@ -18,7 +18,7 @@ export interface Repo {
   mode: "supabase" | "demo";
   orders: { list(): Promise<Order[]>; get(id: string): Promise<Order | null>; update(id: string, patch: Partial<Order>): Promise<void> };
   products: { list(): Promise<ShopProduct[]>; get(id: string): Promise<ShopProduct | null>; save(p: Partial<ShopProduct> & { slug: string }): Promise<string>; remove(id: string): Promise<void> };
-  categories: { list(): Promise<CategoryRow[]>; save(c: CategoryRow): Promise<void> };
+  categories: { list(): Promise<CategoryRow[]>; save(c: CategoryRow): Promise<void>; remove(slug: string): Promise<void> };
   customers: { list(): Promise<Customer[]> };
   discounts: { list(): Promise<Discount[]>; save(d: Partial<Discount>): Promise<void>; remove(id: string): Promise<void> };
   pages: { list(): Promise<Page[]>; get(slug: string): Promise<Page | null>; save(p: Page): Promise<void>; remove(slug: string): Promise<void> };
@@ -100,6 +100,7 @@ function supabaseRepo(): Repo {
     categories: {
       async list() { const { data } = await sb.from("categories").select("*").order("sort"); return (data ?? []) as CategoryRow[]; },
       async save(c) { const { error } = await sb.from("categories").upsert(c); fail(error); },
+      async remove(slug) { const { error } = await sb.from("categories").delete().eq("slug", slug); fail(error); },
     },
     customers: { async list() { const { data } = await sb.from("customers").select("*").order("created_at", { ascending: false }); return (data ?? []) as Customer[]; } },
     discounts: {
@@ -277,7 +278,7 @@ function demoRepo(): Repo {
       async save(p) { let id = p.id ?? `p-${uid()}`; await mut((s) => { const i = s.products.findIndex((x) => x.id === p.id); if (i >= 0) s.products[i] = { ...s.products[i], ...p } as ShopProduct; else s.products.unshift({ art: "gear", specs: [], colors: [], short: { cs: "", en: "" }, price: 0, homologation: "—", brand: "", category: "prislusenstvi", name: "", ...p, id } as ShopProduct); }); return id; },
       async remove(id) { await mut((s) => { s.products = s.products.filter((p) => p.id !== id); }); },
     },
-    categories: { async list() { return load().categories; }, async save(c) { await mut((s) => { const i = s.categories.findIndex((x) => x.slug === c.slug); if (i >= 0) s.categories[i] = c; else s.categories.push(c); }); } },
+    categories: { async list() { return load().categories; }, async save(c) { await mut((s) => { const i = s.categories.findIndex((x) => x.slug === c.slug); if (i >= 0) s.categories[i] = c; else s.categories.push(c); }); }, async remove(slug) { await mut((s) => { s.categories = s.categories.filter((c) => c.slug !== slug); }); } },
     customers: { async list() { return load().customers; } },
     discounts: {
       async list() { return load().discounts; },

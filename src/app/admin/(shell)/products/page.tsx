@@ -6,7 +6,7 @@ import { repo } from "@/lib/admin/repo";
 import { Badge, Button, downloadCsv, Input, LinkButton, money, PageHeader, Select, Table, Td, useAsync, useT, useToast } from "@/components/admin/ui";
 import { primaryImage } from "@/lib/productImage";
 import { SmartImg } from "@/components/SmartImg";
-import { categories } from "@/data/catalog";
+import { useCategories } from "@/lib/admin/useCategories";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 import { useActiveSandbox } from "@/lib/admin/sandbox";
 import { Card, Field } from "@/components/admin/ui";
@@ -43,7 +43,7 @@ function PriceTool({ items, onDone, onClose }: { items: ShopProduct[]; onDone: (
 }
 
 export default function Products() {
-  const { t } = useT();
+  const { t } = useT(); const categories = useCategories();
   const toast = useToast();
   const [q, setQ] = useState(""); const [cat, setCat] = useState(""); const [status, setStatus] = useState("");
   const [sel, setSel] = useState<Set<string>>(new Set());

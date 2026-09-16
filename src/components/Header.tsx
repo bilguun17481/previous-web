@@ -7,21 +7,15 @@ import { useCart } from "@/lib/cart";
 import { useSettings } from "@/lib/settings";
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "/ctyrkolky/", key: "ctyrkolky" },
-  { href: "/utv/", key: "utv" },
-  { href: "/motocykly/", key: "motocykly" },
-  { href: "/skutry/", key: "skutry" },
-  { href: "/prislusenstvi/", key: "prislusenstvi" },
-  { href: "/servis/", key: "servis" },
-  { href: "/kontakt/", key: "kontakt" },
-] as const;
+const staticLinks = [{ href: "/servis/", key: "servis" as const }, { href: "/kontakt/", key: "kontakt" as const }];
 
 export function Header() {
   const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
   const { count } = useCart();
-  const { announcement } = useSettings();
+  const { announcement, categories } = useSettings();
+  // Menu: the store's categories from the admin, then the fixed service and contact pages.
+  const links = [...(categories ?? []).map((c) => ({ href: `/${c.slug}/`, label: c.label })), ...staticLinks.map((l) => ({ href: l.href, label: dict.nav[l.key] }))];
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
   return (
@@ -44,8 +38,8 @@ export function Header() {
           <Logo />
           <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
             {links.map((l) => (
-              <Link key={l.key} href={l.href} className="text-[12px] font-semibold uppercase tracking-[0.14em] hover:text-mute">
-                {t(dict.nav[l.key])}
+              <Link key={l.href} href={l.href} className="text-[12px] font-semibold uppercase tracking-[0.14em] hover:text-mute">
+                {t(l.label)}
               </Link>
             ))}
           </nav>
@@ -72,8 +66,8 @@ export function Header() {
         <nav className="border-b hairline lg:hidden" aria-label="Mobile">
           <div className="container-x grid py-2">
             {links.map((l) => (
-              <Link key={l.key} href={l.href} onClick={() => setOpen(false)} className="border-b hairline py-3.5 text-[13px] font-semibold uppercase tracking-[0.14em] last:border-0">
-                {t(dict.nav[l.key])}
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="border-b hairline py-3.5 text-[13px] font-semibold uppercase tracking-[0.14em] last:border-0">
+                {t(l.label)}
               </Link>
             ))}
           </div>

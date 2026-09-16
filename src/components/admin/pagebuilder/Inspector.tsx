@@ -2,7 +2,7 @@
 import { adm } from "@/lib/admin/i18n";
 import { Button, Field, Input, Select, TextField, useT } from "@/components/admin/ui";
 import { MediaPicker } from "@/components/admin/MediaPicker";
-import { categories } from "@/data/catalog";
+import { useCategories } from "@/lib/admin/useCategories";
 import type { CtaVariant, Section, TextSlot, TextStyle } from "@/lib/types";
 import { ColorField, TypographyPanel } from "./Typography";
 import { hasMedia, slotsOf } from "./blank";
@@ -18,7 +18,7 @@ export function Inspector({ s, tab, onChange }: { s: Section; tab: Tab; onChange
 
 /* ───────── Content ───────── */
 function ContentTab({ s, onChange }: { s: Section; onChange: (patch: Partial<Section>) => void }) {
-  const { t } = useT();
+  const { t } = useT(); const categories = useCategories();
   const f = adm.pages.f;
   const up = (patch: Record<string, unknown>) => onChange(patch as Partial<Section>);
   const cta = "cta" in s ? s.cta : undefined;

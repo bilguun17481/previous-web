@@ -3,7 +3,7 @@ import "./globals.css";
 import { LangProvider } from "@/lib/i18n";
 import { CartProvider } from "@/lib/cart";
 import { SettingsProvider, type SiteSettings } from "@/lib/settings";
-import { getSetting, sandboxPreview } from "@/lib/data";
+import { getCategories, getSetting, sandboxPreview } from "@/lib/data";
 import { SandboxBar } from "@/components/SandboxBar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -19,10 +19,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Render every page on request (except in the static GitHub Pages mirror): the host's live
   // environment is read at request time and admin edits show on the storefront immediately.
   if (process.env.STATIC_EXPORT !== "1") await connection();
-  const [store, announcement, theme] = await Promise.all([
-    getSetting<SiteSettings["store"]>("store"), getSetting<SiteSettings["announcement"]>("announcement"), getSetting<SiteSettings["theme"]>("theme"),
+  const [store, announcement, theme, cats] = await Promise.all([
+    getSetting<SiteSettings["store"]>("store"), getSetting<SiteSettings["announcement"]>("announcement"), getSetting<SiteSettings["theme"]>("theme"), getCategories(),
   ]);
-  const settings: SiteSettings = { store, announcement, theme };
+  const settings: SiteSettings = { store, announcement, theme, categories: cats.map((c) => ({ slug: c.slug, label: c.label })) };
   const sandbox = await sandboxPreview();
   const vars = [theme?.accent && `--color-ink:${theme.accent}`, theme?.signal && `--color-signal:${theme.signal}`, theme?.font && theme.font !== "Inter" && `--font-sans:"${theme.font}",Inter Variable,sans-serif`].filter(Boolean).join(";");
   // Public runtime settings for the browser, so the client works even when build-time variables were absent.
