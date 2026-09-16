@@ -7,6 +7,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { defaultHome } from "@/lib/defaultHome";
 import { resizeImage, SIZES, variantPath } from "@/lib/mediaVariants";
 import { activeSandbox } from "@/lib/admin/sandbox";
+import { bannerKey, categoryBannerPage, categorySlugOf, isCategoryPage } from "@/lib/categoryBanner";
 import type { ChangeEntity, Changeset, ChangesetItem, Customer, Discount, MediaItem, Order, Page, PaymentMethod, ShippingMethod, ShopProduct, Text } from "@/lib/types";
 
 export interface Profile { id: string; email: string | null; full_name: string | null; role: "owner" | "admin" | "staff"; created_at: string }
@@ -387,6 +388,27 @@ function withSandbox(base: Repo): Repo {
   };
 }
 
+/* Category banners are edited as one-section pages ("category:<slug>") but live in settings, so they go
+   through the sandbox like any other setting. Sits above the sandbox layer on purpose. */
+function withVirtualPages(r: Repo): Repo {
+  return {
+    ...r,
+    pages: {
+      ...r.pages,
+      async get(slug) {
+        if (!isCategoryPage(slug)) return r.pages.get(slug);
+        const cat = (await r.categories.list()).find((c) => c.slug === categorySlugOf(slug));
+        if (!cat) return null;
+        return categoryBannerPage(cat, await r.settings.get<Page>(bannerKey(cat.slug)));
+      },
+      async save(p) {
+        if (!isCategoryPage(p.slug)) return r.pages.save(p);
+        await r.settings.set(bannerKey(categorySlugOf(p.slug)), { ...p, status: "published", updated_at: new Date().toISOString() });
+      },
+    },
+  };
+}
+
 let cached: Repo | null = null;
-export function repo(): Repo { if (!cached) cached = withSandbox(supabaseConfigured ? supabaseRepo() : demoRepo()); return cached; }
+export function repo(): Repo { if (!cached) cached = withVirtualPages(withSandbox(supabaseConfigured ? supabaseRepo() : demoRepo())); return cached; }
 export function resetDemo() { try { localStorage.removeItem(KEY); } catch {} cached = null; }

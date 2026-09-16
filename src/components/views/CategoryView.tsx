@@ -1,15 +1,14 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Photo } from "@/components/Photo";
-import { BackgroundMedia } from "@/components/Media";
 import { ProductCard } from "@/components/ProductCard";
+import { Sections } from "@/components/Sections";
 import type { Homologation } from "@/data/catalog";
 import { dict, useLang } from "@/lib/i18n";
-import type { ShopProduct, Text } from "@/lib/types";
+import type { Section, ShopProduct, Text } from "@/lib/types";
 
 type Cat = { slug: string; label: Text; blurb: Text; image_url: string | null; video_url: string | null };
 
-export function CategoryView({ category: cat, products: all }: { category: Cat; products: ShopProduct[] }) {
+export function CategoryView({ category: cat, products: all, banner }: { category: Cat; products: ShopProduct[]; banner: Section }) {
   const { t } = useLang();
   const brandsHere = Array.from(new Set(all.map((p) => p.brand)));
   const homols = Array.from(new Set(all.map((p) => p.homologation))).filter((h) => h !== "—") as Homologation[];
@@ -26,21 +25,11 @@ export function CategoryView({ category: cat, products: all }: { category: Cat; 
       <span className={active ? "font-semibold" : ""}>{children}</span>
     </label>
   );
-  const media = cat.video_url ? { kind: "video" as const, url: cat.video_url } : cat.image_url ? { kind: "image" as const, url: cat.image_url } : undefined;
 
   return (
     <>
-      <section className="relative text-paper">
-        <div className="relative aspect-[4/3] sm:aspect-[16/6]">
-          <BackgroundMedia media={media} fallback={<Photo label={t(cat.label)} tone="dark" ratio="absolute inset-0" hint={t(cat.label)} />} />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        <div className="container-x absolute inset-x-0 bottom-0 pb-8 sm:pb-12">
-          <div className="eyebrow !text-neutral-300">{t(dict.home.linesEyebrow)}</div>
-          <h1 className="mt-2 text-[40px] font-bold leading-none tracking-[-0.02em] sm:text-[56px]">{t(cat.label)}</h1>
-          <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-neutral-200">{t(cat.blurb)}</p>
-        </div>
-      </section>
+      {/* Banner: a hero section customised in Admin → Obsah → Kategorie → Upravit banner. */}
+      <Sections sections={[banner]} products={{}} categories={[]} count={{}} />
       <section className="container-x grid gap-10 py-10 lg:grid-cols-[220px_1fr]">
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="flex items-center justify-between border-b hairline pb-3">

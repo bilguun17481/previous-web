@@ -1,7 +1,7 @@
 "use client";
 import { adm } from "@/lib/admin/i18n";
 import { repo, type CategoryRow } from "@/lib/admin/repo";
-import { Button, Card, Field, PageHeader, TextField, useAsync, useT, useToast } from "@/components/admin/ui";
+import { Button, Card, Field, LinkButton, PageHeader, TextField, useAsync, useT, useToast } from "@/components/admin/ui";
 import { MediaPicker } from "@/components/admin/MediaPicker";
 import { refreshStorefront } from "@/lib/admin/revalidate";
 
@@ -13,10 +13,10 @@ export default function Categories() {
   const save = async (c: CategoryRow) => { try { await repo().categories.save(c); await refreshStorefront(["/", `/${c.slug}/`]); toast(t(adm.common.saved)); } catch (e) { toast((e as Error).message, "err"); } };
   return (
     <>
-      <PageHeader title={t(adm.categories.title)} />
+      <PageHeader title={t(adm.categories.title)} sub={t(adm.categories.bannerHint)} />
       <div className="grid gap-4 lg:grid-cols-2">
         {(data ?? []).map((c, i) => (
-          <Card key={c.slug} title={`/${c.slug}/`} actions={<Button onClick={() => save(c)}>{t(adm.common.save)}</Button>}>
+          <Card key={c.slug} title={`/${c.slug}/`} actions={<div className="flex gap-2"><LinkButton href={`/admin/content/categories/${c.slug}/`} variant="secondary">{t(adm.categories.editBanner)}</LinkButton><Button onClick={() => save(c)}>{t(adm.common.save)}</Button></div>}>
             <div className="space-y-3">
               <TextField label={t(adm.common.name)} value={c.label} onChange={(v) => set(i, { ...c, label: v })} />
               <TextField label={t(adm.categories.blurb)} value={c.blurb} onChange={(v) => set(i, { ...c, blurb: v })} multiline />

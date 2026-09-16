@@ -11,6 +11,7 @@ import type { Page, Section } from "@/lib/types";
 import type { PreviewIn, PreviewOut } from "@/app/admin/preview/page";
 import { Inspector } from "./Inspector";
 import { blankSection, uid } from "./blank";
+import { categorySlugOf, isCategoryPage } from "@/lib/categoryBanner";
 
 type Tab = "content" | "look" | "type";
 const DEVICES = { desktop: 1280, mobile: 390 } as const;
@@ -108,8 +109,10 @@ export function Editor({ slug }: { slug: string }) {
   const scale = Math.min(1, (hostW - 2) / devW);
 
   const sel = useMemo(() => page?.sections.find((s) => s.id === selected) ?? null, [page, selected]);
+  const single = isCategoryPage(slug); // category banner: exactly one hero, no list, always live
+  useEffect(() => { if (single && page?.sections[0] && !selected) setSelected(page.sections[0].id); }, [single, page, selected]);
   if (!page) return <p className="text-mute">{t(adm.common.loading)}</p>;
-  const href = page.slug === "home" ? "/" : `/${page.slug}/`;
+  const href = single ? `/${categorySlugOf(slug)}/` : page.slug === "home" ? "/" : `/${page.slug}/`;
   const p = adm.pages;
 
   return (
@@ -117,10 +120,10 @@ export function Editor({ slug }: { slug: string }) {
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-hair bg-paper px-4 py-2">
         <button onClick={toggleList} title={showList ? t(p.hideList) : t(p.showList)} className={`hidden h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile md:inline-flex ${showList ? "" : "text-mute"}`} aria-pressed={showList}>☰</button>
-        <Link href="/admin/content/pages/" className="text-[12px] text-mute hover:text-ink">← {t(p.title)}</Link>
-        <span className="text-[14px] font-semibold">{t(page.title) || page.slug}</span>
+        <Link href={single ? "/admin/content/categories/" : "/admin/content/pages/"} className="text-[12px] text-mute hover:text-ink">← {single ? t(adm.categories.title) : t(p.title)}</Link>
+        <span className="text-[14px] font-semibold">{single ? `${t(p.categoryBanner)}: ${t(page.title)}` : t(page.title) || page.slug}</span>
         <span className="font-mono text-[11px] text-mute">{href}</span>
-        {page.status === "published" ? <Badge tone="green">{t(p.published)}</Badge> : <Badge tone="amber">{t(p.draft)}</Badge>}
+        {!single && (page.status === "published" ? <Badge tone="green">{t(p.published)}</Badge> : <Badge tone="amber">{t(p.draft)}</Badge>)}
         {dirty && <span className="text-[11px] text-amber-700">● {t(p.unsaved)}</span>}
         {sandbox && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">Sandbox: {sandbox.name}</span>}
         <div className="ml-auto flex items-center gap-1">
@@ -130,7 +133,7 @@ export function Editor({ slug }: { slug: string }) {
             {(Object.keys(DEVICES) as (keyof typeof DEVICES)[]).map((d) => <button key={d} onClick={() => setDevice(d)} className={`rounded px-2 py-1 ${device === d ? "bg-ink text-paper" : "text-mute hover:text-ink"}`}>{t(p[d])}</button>)}
           </div>
           <a href={href} target="_blank" className="inline-flex h-9 items-center rounded-md border border-hair px-3 text-[13px] hover:bg-tile">{t(p.preview)}</a>
-          {page.status === "published" ? <Button variant="secondary" disabled={busy} onClick={() => save("draft")}>{t(p.unpublish)}</Button> : <Button variant="secondary" disabled={busy} onClick={() => save("published")}>{t(p.publish)}</Button>}
+          {!single && (page.status === "published" ? <Button variant="secondary" disabled={busy} onClick={() => save("draft")}>{t(p.unpublish)}</Button> : <Button variant="secondary" disabled={busy} onClick={() => save("published")}>{t(p.publish)}</Button>)}
           <Button disabled={busy || !dirty} onClick={() => save()}>{t(p.saveTo)}</Button>
           <button onClick={togglePanel} title={showPanel ? t(p.hidePanel) : t(p.showPanel)} className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md border border-hair text-[13px] hover:bg-tile ${showPanel ? "" : "text-mute"}`} aria-pressed={showPanel}>⚙</button>
         </div>
@@ -138,7 +141,7 @@ export function Editor({ slug }: { slug: string }) {
 
       <div className="flex min-h-0 flex-1">
         {/* section list */}
-        <aside className={`w-60 shrink-0 overflow-y-auto border-r border-hair bg-paper p-2 ${showList ? "hidden md:block" : "hidden"}`}>
+        <aside className={`w-60 shrink-0 overflow-y-auto border-r border-hair bg-paper p-2 ${showList && !single ? "hidden md:block" : "hidden"}`}>
           <div className="mb-1 flex items-center justify-between px-1"><span className="text-[11px] font-semibold uppercase tracking-wide text-mute">{t(p.sections)}</span><button onClick={() => setAdding(!adding)} className="rounded-md border border-hair px-2 py-0.5 text-[12px] hover:bg-tile">+ {t(adm.common.add)}</button></div>
           {adding && (
             <div className="mb-2 grid gap-1 rounded-md border border-hair bg-[#f6f6f4] p-1.5">
@@ -176,11 +179,11 @@ export function Editor({ slug }: { slug: string }) {
           {sel ? (<>
             <div className="sticky top-0 z-10 border-b border-hair bg-paper px-3 pt-2">
               <div className="flex items-center justify-between"><span className="text-[13px] font-semibold">{t(p.types[sel.type])}</span>
-                <div className="flex gap-1 text-[12px]">
+                {!single && <div className="flex gap-1 text-[12px]">
                   <button className="rounded px-1.5 py-0.5 hover:bg-tile" onClick={() => patchSection(sel.id, { hidden: !sel.hidden })}>{sel.hidden ? t(p.show) : t(p.hide)}</button>
                   <button className="rounded px-1.5 py-0.5 hover:bg-tile" onClick={() => duplicate(sel.id)}>{t(p.duplicate)}</button>
                   <button className="rounded px-1.5 py-0.5 text-signal hover:bg-tile" onClick={() => { if (confirm(t(adm.common.confirmDelete))) remove(sel.id); }}>{t(adm.common.delete)}</button>
-                </div>
+                </div>}
               </div>
               <div className="mt-2 flex gap-4 text-[12px]">{(["content", "look", "type"] as Tab[]).map((tb) => <button key={tb} onClick={() => setTab(tb)} className={`border-b-2 pb-1.5 ${tab === tb ? "border-ink font-semibold" : "border-transparent text-mute hover:text-ink"}`}>{t(p.tabs[tb])}</button>)}</div>
             </div>
