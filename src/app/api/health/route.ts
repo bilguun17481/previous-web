@@ -33,41 +33,45 @@ export async function GET(req: Request) {
   }
   let product: unknown = undefined;
   if (productSlug && url && anon) {
-    const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/products?select=slug,status,images,updated_at&slug=eq.${encodeURIComponent(productSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
-    const rows = (await r.json()) as { slug: string; status: string; images: { url: string }[]; updated_at: string }[];
-    product = rows[0] ? { slug: rows[0].slug, status: rows[0].status, imageCount: rows[0].images?.length ?? 0, firstImage: rows[0].images?.[0]?.url ?? null, updated_at: rows[0].updated_at } : "not found";
-    // Fetch the public product page as a visitor would and see whether the first photo is in the HTML.
-    const site = (publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "");
-    const first = rows[0]?.images?.[0]?.url;
-    if (first) {
-      try {
-        const pr = await fetch(`${site}/produkt/${productSlug}/`, { cache: "no-store", headers: { "user-agent": "health-check" } });
-        const html = await pr.text();
-        (product as Record<string, unknown>).page = { status: pr.status, cacheStatus: pr.headers.get("cache-status") ?? pr.headers.get("x-nextjs-cache") ?? pr.headers.get("netlify-cdn-cache-control") ?? null, age: pr.headers.get("age"), containsFirstImage: html.includes(first), containsAnyStorageImage: html.includes("/storage/v1/object/public/media/") };
-        const img = await fetch(first, { method: "HEAD", cache: "no-store" }).catch(() => null);
-        (product as Record<string, unknown>).firstImageReachable = img ? `${img.status} ${img.headers.get("content-type") ?? ""}` : "unreachable";
-      } catch (e) { (product as Record<string, unknown>).page = `error: ${(e as Error).message}`; }
-    }
+    try {
+      const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/products?select=slug,status,images,updated_at&slug=eq.${encodeURIComponent(productSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
+      const rows = (await r.json()) as { slug: string; status: string; images: { url: string }[]; updated_at: string }[];
+      product = rows[0] ? { slug: rows[0].slug, status: rows[0].status, imageCount: rows[0].images?.length ?? 0, firstImage: rows[0].images?.[0]?.url ?? null, updated_at: rows[0].updated_at } : "not found";
+      // Fetch the public product page as a visitor would and see whether the first photo is in the HTML.
+      const site = (publicEnv("NEXT_PUBLIC_SITE_URL") || new URL(req.url).origin).replace(/\/$/, "");
+      const first = rows[0]?.images?.[0]?.url;
+      if (first) {
+        try {
+          const pr = await fetch(`${site}/produkt/${productSlug}/`, { cache: "no-store", headers: { "user-agent": "health-check" } });
+          const html = await pr.text();
+          (product as Record<string, unknown>).page = { status: pr.status, cacheStatus: pr.headers.get("cache-status") ?? pr.headers.get("x-nextjs-cache") ?? pr.headers.get("netlify-cdn-cache-control") ?? null, age: pr.headers.get("age"), containsFirstImage: html.includes(first), containsAnyStorageImage: html.includes("/storage/v1/object/public/media/") };
+          const img = await fetch(first, { method: "HEAD", cache: "no-store" }).catch(() => null);
+          (product as Record<string, unknown>).firstImageReachable = img ? `${img.status} ${img.headers.get("content-type") ?? ""}` : "unreachable";
+        } catch (e) { (product as Record<string, unknown>).page = `error: ${(e as Error).message}`; }
+      }
+    } catch (e) { product = `unreachable: ${(e as Error).message}${(e as { cause?: { message?: string } }).cause?.message ? ` (${(e as { cause?: { message?: string } }).cause!.message})` : ""}`; }
   }
   // ?page=<slug>: check every picture and video a builder page points at.
   const pageSlug = new URL(req.url).searchParams.get("page");
   let page: unknown = undefined;
   if (pageSlug && url && anon) {
-    const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/pages?select=slug,status,sections&slug=eq.${encodeURIComponent(pageSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
-    const rows = (await r.json()) as { slug: string; status: string; sections: Record<string, unknown>[] }[];
-    if (!rows[0]) page = "not found (or not published)";
-    else {
-      const media: Record<string, unknown>[] = [];
-      for (const sec of rows[0].sections) {
-        for (const key of ["media", "video"]) {
-          const m = sec[key] as { kind?: string; url?: string } | undefined;
-          if (!m?.url) { if (m) media.push({ section: sec.id, type: sec.type, field: key, url: "(empty)" }); continue; }
-          const head = await fetch(m.url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(8000) }).catch((e: Error) => ({ status: 0, headers: new Headers(), error: e.message }));
-          media.push({ section: sec.id, type: sec.type, field: key, kind: m.kind, url: m.url, status: head.status, contentType: head.headers.get("content-type"), ...("error" in head ? { error: head.error } : {}), problem: head.status !== 200 ? "file does not answer: re-pick the picture in the page editor" : !/^image\/(jpeg|png|webp|gif|avif|svg)/.test(head.headers.get("content-type") ?? "") && m.kind === "image" ? "not a browser-displayable image type (HEIC/TIFF?): convert to JPEG and upload again" : "ok" });
+    try {
+      const r = await fetch(`${url.replace(/\/$/, "")}/rest/v1/pages?select=slug,status,sections&slug=eq.${encodeURIComponent(pageSlug)}`, { headers: { apikey: anon, Authorization: `Bearer ${anon}` }, cache: "no-store" });
+      const rows = (await r.json()) as { slug: string; status: string; sections: Record<string, unknown>[] }[];
+      if (!rows[0]) page = "not found (or not published)";
+      else {
+        const media: Record<string, unknown>[] = [];
+        for (const sec of rows[0].sections) {
+          for (const key of ["media", "video"]) {
+            const m = sec[key] as { kind?: string; url?: string } | undefined;
+            if (!m?.url) { if (m) media.push({ section: sec.id, type: sec.type, field: key, url: "(empty)" }); continue; }
+            const head = await fetch(m.url, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(8000) }).catch((e: Error) => ({ status: 0, headers: new Headers(), error: e.message }));
+            media.push({ section: sec.id, type: sec.type, field: key, kind: m.kind, url: m.url, status: head.status, contentType: head.headers.get("content-type"), ...("error" in head ? { error: head.error } : {}), problem: head.status !== 200 ? "file does not answer: re-pick the picture in the page editor" : !/^image\/(jpeg|png|webp|gif|avif|svg)/.test(head.headers.get("content-type") ?? "") && m.kind === "image" ? "not a browser-displayable image type (HEIC/TIFF?): convert to JPEG and upload again" : "ok" });
+          }
         }
+        page = { slug: rows[0].slug, status: rows[0].status, sections: rows[0].sections.length, media };
       }
-      page = { slug: rows[0].slug, status: rows[0].status, sections: rows[0].sections.length, media };
-    }
+    } catch (e) { page = `unreachable: ${(e as Error).message}${(e as { cause?: { message?: string } }).cause?.message ? ` (${(e as { cause?: { message?: string } }).cause!.message})` : ""}`; }
   }
   // What the browser receives: the root layout injects window.__ENV__ into every page from the runtime environment.
   let browser: Record<string, unknown> = {};
