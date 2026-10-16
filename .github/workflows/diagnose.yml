@@ -1,6 +1,6 @@
 name: Diagnose live site
-# Reads the shop's own health endpoint from GitHub's network (the development sandbox cannot reach the site).
-# Prints only what /api/health already exposes publicly: masked settings and per-page media checks.
+# Reads the shop and its Supabase project from GitHub's network (the development sandbox cannot reach them).
+# Prints status lines, headers and the first part of each body; nothing secret is requested or shown.
 on:
   workflow_dispatch:
     inputs:
@@ -10,25 +10,21 @@ on:
       product:
         description: "Product slug to check"
         default: "cfmoto-gladiator-c4-g4"
-  push:
-    branches: [claude/ecommerce-website-design-bv748b]
-    paths: [".github/workflows/diagnose.yml"]
 jobs:
   health:
     runs-on: ubuntu-latest
     steps:
-      - name: Health
+      - name: Site home page
         run: |
-          set -x
-          curl -sS --max-time 30 "https://motodvorak.bilguun17481.workers.dev/api/health/?page=${{ github.event.inputs.page || '-atv' }}" | python3 -m json.tool
-          curl -sS --max-time 30 "https://motodvorak.bilguun17481.workers.dev/api/health/?product=${{ github.event.inputs.product || 'cfmoto-gladiator-c4-g4' }}" | python3 -m json.tool
-      - name: Page HTML images
+          curl -sS -i --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/" | head -40 || true
+      - name: Health endpoint (raw)
         run: |
-          curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o '<img[^>]*>' | head -20 || true
-          curl -sS --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/-atv/" | grep -o 'src="[^"]*"' | sort -u | head -40 || true
-      - name: Pickup widgets reachable
+          curl -sS -i --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/api/health/?page=${{ github.event.inputs.page || '-atv' }}" | head -80 || true
+          echo; echo "--- product ---"
+          curl -sS -i --max-time 30 -A "diagnose" "https://motodvorak.bilguun17481.workers.dev/api/health/?product=${{ github.event.inputs.product || 'cfmoto-gladiator-c4-g4' }}" | head -80 || true
+      - name: Supabase project (no key sent)
         run: |
-          for u in "https://www.ppl.cz/sources/map/main.js" "https://map.gls-hungary.com/widget/gls-dpm.js" "https://b2c.cpost.cz/locations/?type=BALIKOVNY" "https://widget.packeta.com/v6/www/js/library.js"; do
-            echo "== $u"; curl -sS -o /tmp/w -w 'status=%{http_code} type=%{content_type} bytes=%{size_download}\n' --max-time 30 -A "Mozilla/5.0" "$u" || true
-            grep -o 'ppl-parcelshop-map\|gls-dpm\|postMessage\|customElements.define([^)]*' /tmp/w | sort | uniq -c | head -5 || true
-          done
+          echo "--- auth health ---"; curl -sS -i --max-time 30 "https://thsqnfdrmqflvguzktnh.supabase.co/auth/v1/health" | head -20 || true
+          echo; echo "--- rest root ---"; curl -sS -i --max-time 30 "https://thsqnfdrmqflvguzktnh.supabase.co/rest/v1/" | head -20 || true
+          echo; echo "--- storage object (public file) ---"; curl -sS -I --max-time 30 "https://thsqnfdrmqflvguzktnh.supabase.co/storage/v1/object/public/media/images/C4-G4/1789105472683-cfmoto_cforce-c4_outdoor_11_a.jpg" | head -12 || true
+          echo; echo "--- DNS ---"; getent hosts thsqnfdrmqflvguzktnh.supabase.co || echo "no DNS answer"
